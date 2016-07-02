@@ -29,6 +29,6 @@ void setup()
 
 void loop() {
 
-  
+  //nothing in here so that the quadcopter doesn't loop any bugged out commands during testing
   
 }

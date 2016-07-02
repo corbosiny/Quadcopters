@@ -4,15 +4,16 @@
 Balancer::Balancer(int p_accelerometerPins[])
 {
 
-  memcpy(accelerometerPins, p_accelerometerPins, sizeof(p_accelerometerPins));
+  memcpy(accelerometerPins, p_accelerometerPins, sizeof(p_accelerometerPins)); //makes an array of accelerometerPins based off the entered list
   
 }
 
-int Balancer::readAccelerometerPin(int numAccel) {return analogRead(accelerometerPins[numAccel]);}
-int Balancer::readAllAccelerometerPins()
+int Balancer::readAccelerometerPin(int numAccel) {return analogRead(accelerometerPins[numAccel]);} //returns the acceleration on one of the accelerometer pins
+
+int Balancer::readAllAccelerometerPins() //reads each accelereometer pin and stores its reading int he respective index over in accelerometer readings
 {
 
-  for(int i = 0; i < sizeof(accelerometerReadings) / sizeof(accelerometerReadings[0]); i++) {accelerometerReadings[i] = readAccelerometerPin(i);}
+  for(int i = 0; i < sizeof(accelerometerReadings) / sizeof(accelerometerReadings[0]); i++) {accelerometerReadings[i] = readAccelerometerPin(i);} 
   
 }
 
@@ -28,4 +29,4 @@ void Balancer::selfBalance()
   
 }
 
-Balancer::~Balancer() {delete[] accelerometeReadings; delete[] accelerometerPins;}
+Balancer::~Balancer() {delete[] accelerometeReadings; free(accelerometerPins);} //deconstructor for the class to free
