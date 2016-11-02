@@ -24,7 +24,7 @@ void setup() {
   Serial.begin(9600);                                               //Use only for debugging
   pinMode(13, OUTPUT);                                                 //Set output 13 (LED) as output
   
-  setup_mpu_6050_registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
+  setupMpu6050Registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
 
   digitalWrite(13, HIGH);                                              //Set digital output 13 high to indicate startup
   for (int cal_int = 0; cal_int < 2000 ; cal_int ++){                  //Run this code 2000 times
@@ -46,7 +46,7 @@ void setup() {
 
 void loop(){
 
-  read_mpu_6050_data();                                                //Read the raw acc and gyro data from the MPU-6050
+  readMpu6050_data();                                                //Read the raw acc and gyro data from the MPU-6050
 
   gyro_x -= gyro_x_cal;                                                //Subtract the offset calibration value from the raw gyro_x value
   gyro_y -= gyro_y_cal;                                                //Subtract the offset calibration value from the raw gyro_y value
@@ -95,7 +95,7 @@ void loop(){
 }
 
 
-void read_mpu_6050_data(){                                             //Subroutine for reading the raw gyro and accelerometer data
+void readMpu6050_data(){                                             //Subroutine for reading the raw gyro and accelerometer data
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
   Wire.write(0x3B);                                                    //Send the requested starting register
   Wire.endTransmission();                                              //End the transmission
@@ -111,7 +111,7 @@ void read_mpu_6050_data(){                                             //Subrout
 
 }
 
-void setup_mpu_6050_registers(){
+void setupMpu6050Registers(){
   //Activate the MPU-6050
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
   Wire.write(0x6B);                                                    //Send the requested starting register
