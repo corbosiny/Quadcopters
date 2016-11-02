@@ -40,6 +40,7 @@ void setup() {
   gyro_y_cal /= 2000;                                                  //Divide the gyro_y_cal variable by 2000 to get the avarage offset
   gyro_z_cal /= 2000;                                                  //Divide the gyro_z_cal variable by 2000 to get the avarage offset
 
+  digitalWrite(13, LOW); 
                                                                           //Reset the loop timer
 }
 
