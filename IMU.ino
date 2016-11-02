@@ -1,5 +1,5 @@
 
-//Gyro - Arduino pro mini
+//Gyro - Arduino uno
 //VCC  -  5V
 //GND  -  GND
 //SDA  -  A4
