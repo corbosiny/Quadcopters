@@ -90,8 +90,6 @@ void loop(){
   Serial.println(angle_pitch);
   Serial.print("Roll: ");
   Serial.println(angle_roll);
-  Serial.print("Yaw: ");
-  Serial.println("");
   
 }
 
