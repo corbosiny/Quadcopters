@@ -13,12 +13,14 @@ This folder should/will contain:
     
     4. Test/callibration code for making sure the drone is functioning properly
 
--GPS related code for tracking/planning flight
+GPS related code for tracking/planning flight
+    -More to come on the modules for this
 
--Sensors for measurments the drone needs to take
+Sensors for measurments the drone needs to take
+    -More to come, many modules can be used
 
--Code setting up the basic communication between drones
-
+Code setting up the basic communication between drones
+    -ESP8266 will be used
 
 Support repositories or repositories that build off of this:
 
