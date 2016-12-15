@@ -16,103 +16,122 @@
 //  SDA  -  A4
 //  SCL  -  A5
 
-//Barameter
+//Barameter PINOUT:
+//  -
+
+//Magenomter PINOUT:
+//  -
 
 #include <Wire.h>
 
 //Declaring some global variables
-int gyro_x, gyro_y, gyro_z;                             //holds the rate of change the quadcopter's angles detected by the MPU6050
-long acc_x, acc_y, acc_z, acc_total_vector;             //hold the
-long gyro_x_cal, gyro_y_cal, gyro_z_cal;                //used for calibration of the initial gyro reading offsets
-float angle_pitch, angle_roll;                          //IMU pitch and roll values
-int angle_pitch_buffer, angle_roll_buffer;              //
-boolean set_gyro_angles;                                //used to trigger initial angle readings, only is used on startup
-int temperature;  
-float angle_roll_acc, angle_pitch_acc;
-float angle_pitch_output, angle_roll_output;
+int gyroX, gyroY, gyroZ;                                //holds the rate of change the quadcopter's angles detected by the MPU6050
+long int accX, accY, accZ, accMag;                      //hold the acceleration values of their respective axsis and the magnitude
+float anglePitch, angleRoll;                            //first the gyro calculated angles, then the IMU pitch and roll values
+float angleRollAcc, anglePitchAcc;                      //calculated rotaion angles based off accelerometer
+long gyroXoffset, gyroYoffet, gyroZoffset;              //used for calibration of the initial gyro reading offsets
+boolean setGyroAngles = 0;                              //used to trigger initial angle readings, only is used on startup
+int temperature;                                        //self explanatory bruh
 
-void setup() {
-  Wire.begin();                                                        //Start I2C as master
-  Serial.begin(9600);                                               //Use only for debugging
-  pinMode(13, OUTPUT);                                                 //Set output 13 (LED) as output
+int MPUaddr = 0x68;                                     //MPU address on the i2c bus, DO NOT CHANGE I WILL FIND YOU 
+float accPitchOffset = 0, accRollOffset = 0;
+float gyroContribution = .9996;                         //
+
+void setup() 
+{
+
+  Wire.begin();                                                      
+  Serial.begin(9600);                                                    //Use only for debugging
+  pinMode(13, OUTPUT);                                                   //if this pin is in use take out this line
   
-  setupMpu6050Registers();                                          //Setup the registers of the MPU-6050 (500dfs / +/-8g) and start the gyro
+  setupMPU6050Registers();                                               //Setup the registers of the MPU-6050, look at datasheet for more info
 
-  digitalWrite(13, HIGH);                                              //Set digital output 13 high to indicate startup
-  for (int cal_int = 0; cal_int < 2000 ; cal_int ++){                  //Run this code 2000 times
-    if(cal_int % 125 == 0){Serial.print(".");}                              //Print a dot on the LCD every 125 readings
-    read_mpu_6050_data();                                              //Read the raw acc and gyro data from the MPU-6050
-    gyro_x_cal += gyro_x;                                              //Add the gyro x-axis offset to the gyro_x_cal variable
-    gyro_y_cal += gyro_y;                                              //Add the gyro y-axis offset to the gyro_y_cal variable
-    gyro_z_cal += gyro_z;                                              //Add the gyro z-axis offset to the gyro_z_cal variable
-    delay(3);                                                          //Delay 3us to simulate the 250Hz program loop
+  digitalWrite(13, HIGH);                                                //lets user know it is starting the callibration
+  
+  for (int i; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
+  {                                           
+      
+      read_mpu_6050_data();                                              //Read the raw acc and gyro data from the MPU6050
+      gyroXoffset += gyroX;                                              //keep running total of 2000 readings
+      gyroYoffset += gyroY;                                              
+      gyroZoffset += gyroZ;                                              
+      delay(3);                                                          
+  
   }
+  
   Serial.println("Done calibrating");
-  gyro_x_cal /= 2000;                                                  //Divide the gyro_x_cal variable by 2000 to get the avarage offset
-  gyro_y_cal /= 2000;                                                  //Divide the gyro_y_cal variable by 2000 to get the avarage offset
-  gyro_z_cal /= 2000;                                                  //Divide the gyro_z_cal variable by 2000 to get the avarage offset
+  gyroXoffset /= 2000;                                                  //Divide the gyro variables by 2000 to get the avarage offset
+  gyroYoffset /= 2000;                                                  
+  gyroZoffset /= 2000;                                                  
 
-  digitalWrite(13, LOW); 
+  digitalWrite(13, LOW);                                               //lets the user know its is done calibrating
                                                                           //Reset the loop timer
 }
 
 void loop(){
 
-  readMpu6050_data();                                                //Read the raw acc and gyro data from the MPU-6050
+  readMPU6050_data();                                                  //loads in all the raw readings from the MPU6050
 
-  gyro_x -= gyro_x_cal;                                                //Subtract the offset calibration value from the raw gyro_x value
-  gyro_y -= gyro_y_cal;                                                //Subtract the offset calibration value from the raw gyro_y value
-  gyro_z -= gyro_z_cal;                                                //Subtract the offset calibration value from the raw gyro_z value
+  gyroX -= gyroXoffset;                                                //Subtracting the calibration offset from the raw gyro values
+  gyroY -= gyroYoffset;                                                
+  gyroZ -= gyroZoffset;                                                
   
   //Gyro angle calculations
   //0.0000611 = 1 / (250Hz / 65.5)
-  angle_pitch += gyro_x * 0.0000611;                                   //Calculate the traveled pitch angle and add this to the angle_pitch variable
-  angle_roll += gyro_y * 0.0000611;                                    //Calculate the traveled roll angle and add this to the angle_roll variable
+  anglePitch += gyroX * 0.0000611;                                   //Calculate the traveled pitch angle and add this to the angle_pitch variable
+  angleRoll += gyroY * 0.0000611;                                    //Calculate the traveled roll angle and add this to the angle_roll variable
   
-  //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) The Arduino sin function is in radians
-  angle_pitch += angle_roll * sin(gyro_z * 0.000001066);               //If the IMU has yawed transfer the roll angle to the pitch angel
-  angle_roll -= angle_pitch * sin(gyro_z * 0.000001066);               //If the IMU has yawed transfer the pitch angle to the roll angel
+  //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) to convert to radians
+  anglePitch += angleRoll * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the roll angle to the pitch angel
+  angleRoll -= anglePitch * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the pitch angle to the roll angel
   
   //Accelerometer angle calculations
-  acc_total_vector = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));  //Calculate the total accelerometer vector
-  //57.296 = 1 / (3.142 / 180) The Arduino asin function is in radians
-  angle_pitch_acc = asin((float)acc_y/acc_total_vector)* 57.296;       //Calculate the pitch angle
-  angle_roll_acc = asin((float)acc_x/acc_total_vector)* -57.296;       //Calculate the roll angle
+  accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));  //Calculate the total accelerometer vector
   
-  //Place the MPU-6050 spirit level and note the values in the following two lines for calibration
-  angle_pitch_acc -= 0.0;                                              //Accelerometer calibration value for pitch
-  angle_roll_acc -= 0.0;                                               //Accelerometer calibration value for roll
+  //57.296 = 1 / (3.142 / 180) to convert to radians
+  anglePitchAcc = asin((float)accY/accMag)* 57.296;       //Calculate the pitch angle
+  angleRollAcc = asin((float)accX/accMag)* -57.296;       //Calculate the roll angle
+  
+  //set unit flat to determine these values
+  //helps to determine initial angles better
+  anglePitchAcc -= accPitchOffset;                                              //Accelerometer calibration value for pitch
+  angleRollAcc -=  accRollOffset;                                               
 
-  if(set_gyro_angles){                                                 //If the IMU is already started
-    angle_pitch = angle_pitch * 0.9996 + angle_pitch_acc * 0.0004;     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
-    angle_roll = angle_roll * 0.9996 + angle_roll_acc * 0.0004;        //Correct the drift of the gyro roll angle with the accelerometer roll angle
-  }
-  else{                                                                //At first start
-    angle_pitch = angle_pitch_acc;                                     //Set the gyro pitch angle equal to the accelerometer pitch angle 
-    angle_roll = angle_roll_acc;                                       //Set the gyro roll angle equal to the accelerometer roll angle 
-    set_gyro_angles = true;                                            //Set the IMU started flag
-  }
   
-  //complimentary filter
+  //below we usecomplimentary filter
   //basically a weighted average of gyro and accelerometer readings
   //result is essentially a bandpass filter that disregards random small spikes in accel readings
   //and corrects long term drift of the gyro, sort of like an integral proportional controller but averaged
-  angle_pitch_output = angle_pitch_output * 0.9 + angle_pitch * 0.1;   //Take specified % of the output pitch value and add 100 -specified% of the raw pitch value
-  angle_roll_output = angle_roll_output * 0.9 + angle_roll * 0.1;      //Take specified % of the output roll value and add 100 - specified% of the raw roll value
   
-  temperature = temperature / 340.00 + 36.53                            //from data sheet, converts temp reading to celcius
+  if(setGyroAngles)                                                                          //If the IMU is already started
+  {                                                 
+    anglePitch = anglePitch * gyroContribution + anglePitchAcc * (1 - gyroContribution);     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
+    angleRoll = angleRoll * gyroContribution + angleRollAcc * (1 - gyroContribution);        
+  }
+  else
+  {                                                                   //Only occurs first start
+    anglePitch = anglePitchAcc;                                       //Set the initial angles to the accelerometer angles 
+    angleRoll = angleRollAcc;                                        
+    setGyroAngles = true;                                             //prevents any more triggering
+  }
   
-  Serial.print("Pitch: ");
+  temperature = temperature / 340.00 + 36.53;                         //from data sheet, converts temp reading to celcius
+  
+  Serial.print("Pitch: ");                                            //Debugging
   Serial.println(angle_pitch);
   Serial.print("Roll: ");
   Serial.println(angle_roll);
+  Serial.print("Temperature: ")
+  Serial.println(temperature);
+  Serial.println("\n\n");
   
 }
 
 //--------------------------------------------------------------------------------------------------------
 //-!!!!!!!!!!!!DONT EVER TOUCH THE CODE BELOW THIS EVER, I SWEAR THERE'LL BE HELL TO PAY!!!!!!!!!!!!!!!!!-
+//-------------                                    From, Corey                           -----------------
 //--------------------------------------------------------------------------------------------------------
-void readMpu6050_data()                                                //loads in all the readings from the corresponding registers in the MPU
+void readMPU6050_data()                                                //loads in all the readings from the corresponding registers in the MPU
 {                                                                      //all this comes from the data sheet 
                                                                        //ali, if you see this comment send me a text saying hi
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
@@ -120,17 +139,17 @@ void readMpu6050_data()                                                //loads i
   Wire.endTransmission();                                              //End the transmission
   Wire.requestFrom(0x68,14);                                           //Request 14 bytes from the MPU-6050
   while(Wire.available() < 14);                                        //Wait until all the bytes are received
-  acc_x = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_x variable
-  acc_y = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_y variable
-  acc_z = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_z variable
+  accX = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_x variable
+  accY = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_y variable
+  accZ = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_z variable
   temperature = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the temperature variable
-  gyro_x = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_x variable
-  gyro_y = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_y variable
-  gyro_z = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_z variable
+  gyroX = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_x variable
+  gyroY = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_y variable
+  gyroZ = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_z variable
 
 }
 
-void setupMpu6050Registers()
+void setupMPU6050Registers()
 {
   
   //Activate the MPU-6050
