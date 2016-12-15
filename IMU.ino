@@ -24,29 +24,28 @@
 
 #include <Wire.h>
 
-//Declaring some global variables
-int gyroX, gyroY, gyroZ;                                //holds the rate of change the quadcopter's angles detected by the MPU6050
-long int accX, accY, accZ, accMag;                      //hold the acceleration values of their respective axsis and the magnitude
-float anglePitch, angleRoll;                            //first the gyro calculated angles, then the IMU pitch and roll values
-float angleRollAcc, anglePitchAcc;                      //calculated rotaion angles based off accelerometer
-long gyroXoffset, gyroYoffet, gyroZoffset;              //used for calibration of the initial gyro reading offsets
-boolean setGyroAngles = 0;                              //used to trigger initial angle readings, only is used on startup
-int temperature;                                        //self explanatory bruh
+int gyroX, gyroY, gyroZ;                                                 //holds the rate of change the quadcopter's angles detected by the MPU6050
+long int accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
+float anglePitch, angleRoll;                                             //first the gyro calculated angles, then the IMU pitch and roll values
+float angleRollAcc, anglePitchAcc;                                       //calculated rotaion angles based off accelerometer
+long gyroXoffset, gyroYoffet, gyroZoffset;                               //used for calibration of the initial gyro reading offsets
+boolean setGyroAngles = 0;                                               //used to trigger initial angle readings, only is used on startup
+int temperature;                                                         //self explanatory bruh
 
-int MPUaddr = 0x68;                                     //MPU address on the i2c bus, DO NOT CHANGE I WILL FIND YOU 
-float accPitchOffset = 0, accRollOffset = 0;
-float gyroContribution = .9996;                         //
+int MPUaddr = 0x68;                                                      //MPU address on the i2c bus, DO NOT CHANGE I WILL FIND YOU 
+float accPitchOffset = 0, accRollOffset = 0;                             //offsets for the accelerometer values, laying it flat is the best way to calculate these
+float gyroContribution = .9996;                                          //used for the complimentary filter, how much weight the gyro's measurments are given vs the accelerometer
 
 void setup() 
 {
 
   Wire.begin();                                                      
   Serial.begin(9600);                                                    //Use only for debugging
-  pinMode(13, OUTPUT);                                                   //if this pin is in use take out this line
+  pinMode(13, OUTPUT);                                                   //if this pin is in use take out this line and the digital writes to it below
   
   setupMPU6050Registers();                                               //Setup the registers of the MPU-6050, look at datasheet for more info
 
-  digitalWrite(13, HIGH);                                                //lets user know it is starting the callibration
+  digitalWrite(13, HIGH);                                                
   
   for (int i; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
   {                                           
@@ -64,66 +63,67 @@ void setup()
   gyroYoffset /= 2000;                                                  
   gyroZoffset /= 2000;                                                  
 
-  digitalWrite(13, LOW);                                               //lets the user know its is done calibrating
-                                                                          //Reset the loop timer
+  digitalWrite(13, LOW);                                               
+                                                                         
 }
 
-void loop(){
+void loop()
+{
 
-  readMPU6050_data();                                                  //loads in all the raw readings from the MPU6050
+    readMPU6050_data();                                                                      //loads in all the raw readings from the MPU6050
 
-  gyroX -= gyroXoffset;                                                //Subtracting the calibration offset from the raw gyro values
-  gyroY -= gyroYoffset;                                                
-  gyroZ -= gyroZoffset;                                                
-  
-  //Gyro angle calculations
-  //0.0000611 = 1 / (250Hz / 65.5)
-  anglePitch += gyroX * 0.0000611;                                   //Calculate the traveled pitch angle and add this to the angle_pitch variable
-  angleRoll += gyroY * 0.0000611;                                    //Calculate the traveled roll angle and add this to the angle_roll variable
-  
-  //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) to convert to radians
-  anglePitch += angleRoll * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the roll angle to the pitch angel
-  angleRoll -= anglePitch * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the pitch angle to the roll angel
-  
-  //Accelerometer angle calculations
-  accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));  //Calculate the total accelerometer vector
-  
-  //57.296 = 1 / (3.142 / 180) to convert to radians
-  anglePitchAcc = asin((float)accY/accMag)* 57.296;       //Calculate the pitch angle
-  angleRollAcc = asin((float)accX/accMag)* -57.296;       //Calculate the roll angle
-  
-  //set unit flat to determine these values
-  //helps to determine initial angles better
-  anglePitchAcc -= accPitchOffset;                                              //Accelerometer calibration value for pitch
-  angleRollAcc -=  accRollOffset;                                               
+    gyroX -= gyroXoffset;                                                                    //Subtracting the calibration offset from the raw gyro values
+    gyroY -= gyroYoffset;                                                
+    gyroZ -= gyroZoffset;                                                
 
-  
-  //below we usecomplimentary filter
-  //basically a weighted average of gyro and accelerometer readings
-  //result is essentially a bandpass filter that disregards random small spikes in accel readings
-  //and corrects long term drift of the gyro, sort of like an integral proportional controller but averaged
-  
-  if(setGyroAngles)                                                                          //If the IMU is already started
-  {                                                 
-    anglePitch = anglePitch * gyroContribution + anglePitchAcc * (1 - gyroContribution);     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
-    angleRoll = angleRoll * gyroContribution + angleRollAcc * (1 - gyroContribution);        
-  }
-  else
-  {                                                                   //Only occurs first start
-    anglePitch = anglePitchAcc;                                       //Set the initial angles to the accelerometer angles 
-    angleRoll = angleRollAcc;                                        
-    setGyroAngles = true;                                             //prevents any more triggering
-  }
-  
-  temperature = temperature / 340.00 + 36.53;                         //from data sheet, converts temp reading to celcius
-  
-  Serial.print("Pitch: ");                                            //Debugging
-  Serial.println(angle_pitch);
-  Serial.print("Roll: ");
-  Serial.println(angle_roll);
-  Serial.print("Temperature: ")
-  Serial.println(temperature);
-  Serial.println("\n\n");
+    //Gyro angle calculations
+    //0.0000611 = 1 / (250Hz / 65.5)
+    anglePitch += gyroX * 0.0000611;                                                        //Calculate the traveled pitch angle and add this to the angle_pitch variable
+    angleRoll += gyroY * 0.0000611;                                                         //Calculate the traveled roll angle and add this to the angle_roll variable
+
+    //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) to convert to radians
+    anglePitch += angleRoll * sin(gyroZ * 0.000001066);                                     //If the IMU has yawed transfer the roll angle to the pitch angel
+    angleRoll -= anglePitch * sin(gyroZ * 0.000001066);                                     //If the IMU has yawed transfer the pitch angle to the roll angel
+
+    //Accelerometer angle calculations
+    accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));                                              //Calculate the total accelerometer vector
+
+    //57.296 = 1 / (3.142 / 180) to convert to radians
+    anglePitchAcc = asin((float)accY/accMag)* 57.296;                                       //Calculate the pitch angle
+    angleRollAcc = asin((float)accX/accMag)* -57.296;                                       //Calculate the roll angle
+
+    //set unit flat to determine these values
+    //helps to determine initial angles better
+    anglePitchAcc -= accPitchOffset;                                                        //Accelerometer calibration value for pitch
+    angleRollAcc -=  accRollOffset;                                               
+
+
+    //below we use acomplimentary filter
+    //basically a weighted average of gyro and accelerometer readings
+    //result is essentially a bandpass filter that disregards random small spikes in accel readings
+    //and corrects long term drift of the gyro, sort of like an integral proportional controller but averaged
+
+    if(setGyroAngles)                                                                             //If the IMU is already started
+    {                                                 
+        anglePitch = anglePitch * gyroContribution + anglePitchAcc * (1 - gyroContribution);     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
+        angleRoll = angleRoll * gyroContribution + angleRollAcc * (1 - gyroContribution);        
+    }
+    else
+    {                                                                                         //Only occurs first start
+        anglePitch = anglePitchAcc;                                                           //Set the initial angles to the accelerometer angles 
+        angleRoll = angleRollAcc;                                        
+        setGyroAngles = true;                                                                 //prevents any more triggering
+    }
+
+    temperature = temperature / 340.00 + 36.53;                                               //from data sheet, converts temp reading to celcius
+
+    Serial.print("Pitch: ");                                                                  //Debugging
+    Serial.println(angle_pitch);
+    Serial.print("Roll: ");
+    Serial.println(angle_roll);
+    Serial.print("Temperature: ")
+    Serial.println(temperature);
+    Serial.println("\n\n");
   
 }
 
