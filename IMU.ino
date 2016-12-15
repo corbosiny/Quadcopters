@@ -1,19 +1,22 @@
 //**********************************************************************
 //*                          FEROMONE IMU                               *
 //*              CALCULATES CURRENT STATE OF THE DRONE                  *
-//*              PITCH, ROLL, YAW(soon), TEMPERATURE, ALTITUDE(soon)    *
+//*         PITCH, ROLL, YAW(soon), TEMPERATURE, ALTITUDE(soon)         *
+//*                  Sub-team members: Corey, Ali                       *
 //*ASK COREY OR ALI ABOUT THE MATH AND/OR CODE IF YOU HAVE ANY QUESTIONS*
 //***********************************************************************
 //
-//Gyro/Accel  - MPU6050
-//Barometer   - TBD
-//MAGNEOMETER - TBD
+//Gyro/Accel    -   MPU6050
+//Barometer     -   TBD
+//Magenetometer -   TBD
 
 //MPU6050 PINOUT(I2C):
 //  VCC  -  5V
 //  GND  -  GND
 //  SDA  -  A4
 //  SCL  -  A5
+
+//Barameter
 
 #include <Wire.h>
 
@@ -24,7 +27,7 @@ long gyro_x_cal, gyro_y_cal, gyro_z_cal;                //used for calibration o
 float angle_pitch, angle_roll;                          //IMU pitch and roll values
 int angle_pitch_buffer, angle_roll_buffer;              //
 boolean set_gyro_angles;                                //used to trigger initial angle readings, only is used on startup
-int temperature;
+int temperature;  
 float angle_roll_acc, angle_pitch_acc;
 float angle_pitch_output, angle_roll_output;
 
