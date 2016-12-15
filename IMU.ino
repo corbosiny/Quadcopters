@@ -1,20 +1,29 @@
+//**********************************************************************
+//*                          FEROMONE IMU                               *
+//*              CALCULATES CURRENT STATE OF THE DRONE                  *
+//*              PITCH, ROLL, YAW(soon), TEMPERATURE, ALTITUDE(soon)    *
+//*ASK COREY OR ALI ABOUT THE MATH AND/OR CODE IF YOU HAVE ANY QUESTIONS*
+//***********************************************************************
+//
+//Gyro/Accel  - MPU6050
+//Barometer   - TBD
+//MAGNEOMETER - TBD
 
-//Gyro - Arduino uno
-//VCC  -  5V
-//GND  -  GND
-//SDA  -  A4
-//SCL  -  A5
-
+//MPU6050 PINOUT(I2C):
+//  VCC  -  5V
+//  GND  -  GND
+//  SDA  -  A4
+//  SCL  -  A5
 
 #include <Wire.h>
 
 //Declaring some global variables
-int gyro_x, gyro_y, gyro_z;
-long acc_x, acc_y, acc_z, acc_total_vector;
-long gyro_x_cal, gyro_y_cal, gyro_z_cal;
-float angle_pitch, angle_roll;
-int angle_pitch_buffer, angle_roll_buffer;
-boolean set_gyro_angles;
+int gyro_x, gyro_y, gyro_z;                             //holds the rate of change the quadcopter's angles detected by the MPU6050
+long acc_x, acc_y, acc_z, acc_total_vector;             //hold the
+long gyro_x_cal, gyro_y_cal, gyro_z_cal;                //used for calibration of the initial gyro reading offsets
+float angle_pitch, angle_roll;                          //IMU pitch and roll values
+int angle_pitch_buffer, angle_roll_buffer;              //
+boolean set_gyro_angles;                                //used to trigger initial angle readings, only is used on startup
 int temperature;
 float angle_roll_acc, angle_pitch_acc;
 float angle_pitch_output, angle_roll_output;
@@ -81,12 +90,15 @@ void loop(){
     set_gyro_angles = true;                                            //Set the IMU started flag
   }
   
-  //To dampen the pitch and roll angles a complementary filter is used
-  angle_pitch_output = angle_pitch_output * 0.9 + angle_pitch * 0.1;   //Take 90% of the output pitch value and add 10% of the raw pitch value
-  angle_roll_output = angle_roll_output * 0.9 + angle_roll * 0.1;      //Take 90% of the output roll value and add 10% of the raw roll value
+  //complimentary filter
+  //basically a weighted average of gyro and accelerometer readings
+  //result is essentially a bandpass filter that disregards random small spikes in accel readings
+  //and corrects long term drift of the gyro, sort of like an integral proportional controller but averaged
+  angle_pitch_output = angle_pitch_output * 0.9 + angle_pitch * 0.1;   //Take specified % of the output pitch value and add 100 -specified% of the raw pitch value
+  angle_roll_output = angle_roll_output * 0.9 + angle_roll * 0.1;      //Take specified % of the output roll value and add 100 - specified% of the raw roll value
   
-                                                                        //Write the roll and pitch values to the LCD display
-
+  temperature = temperature / 340.00 + 36.53                            //from data sheet, converts temp reading to celcius
+  
   Serial.print("Pitch: ");
   Serial.println(angle_pitch);
   Serial.print("Roll: ");
@@ -94,8 +106,12 @@ void loop(){
   
 }
 
-
-void readMpu6050_data(){                                             //Subroutine for reading the raw gyro and accelerometer data
+//--------------------------------------------------------------------------------------------------------
+//-!!!!!!!!!!!!DONT EVER TOUCH THE CODE BELOW THIS EVER, I SWEAR THERE'LL BE HELL TO PAY!!!!!!!!!!!!!!!!!-
+//--------------------------------------------------------------------------------------------------------
+void readMpu6050_data()                                                //loads in all the readings from the corresponding registers in the MPU
+{                                                                      //all this comes from the data sheet 
+                                                                       //ali, if you see this comment send me a text saying hi
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
   Wire.write(0x3B);                                                    //Send the requested starting register
   Wire.endTransmission();                                              //End the transmission
@@ -111,7 +127,9 @@ void readMpu6050_data(){                                             //Subroutin
 
 }
 
-void setupMpu6050Registers(){
+void setupMpu6050Registers()
+{
+  
   //Activate the MPU-6050
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
   Wire.write(0x6B);                                                    //Send the requested starting register
@@ -127,6 +145,7 @@ void setupMpu6050Registers(){
   Wire.write(0x1B);                                                    //Send the requested starting register
   Wire.write(0x08);                                                    //Set the requested starting register
   Wire.endTransmission();                                              //End the transmission
+
 }
 
 
