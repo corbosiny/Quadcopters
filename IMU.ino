@@ -82,11 +82,11 @@ void loop()
     angleRoll += gyroY * 0.0000611;                                                         //Calculate the traveled roll angle and add this to the angle_roll variable
 
     //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) to convert to radians
-    anglePitch += angleRoll * sin(gyroZ * 0.000001066);                                     //If the IMU has yawed transfer the roll angle to the pitch angel
-    angleRoll -= anglePitch * sin(gyroZ * 0.000001066);                                     //If the IMU has yawed transfer the pitch angle to the roll angel
+    anglePitch += angleRoll * sin(gyroZ * 0.000001066);                                     //If the IMU is rotating, we must transfer the pitch and the roll between eachother in a sinosoidal wave form
+    angleRoll -= anglePitch * sin(gyroZ * 0.000001066);                                     //this isn't the easiest concept to explain in comments, feel free to ask Corey
 
     //Accelerometer angle calculations
-    accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));                                              //Calculate the total accelerometer vector
+    accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));                                              //Calculate the total accelerometer vector magnitude
 
     //57.296 = 1 / (3.142 / 180) to convert to radians
     anglePitchAcc = asin((float)accY/accMag)* 57.296;                                       //Calculate the pitch angle
