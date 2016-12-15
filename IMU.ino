@@ -169,17 +169,3 @@ void setupMPU6050Registers()
   Wire.endTransmission();                                              //End the transmission
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
