@@ -23,6 +23,10 @@
 //  -
 
 #include <Wire.h>
+#include <BMP085.h>
+
+#include "I2Cdev.h"
+#include "HMC5883L.h"
 
 int gyroX, gyroY, gyroZ;                                                 //holds the rate of change the quadcopter's angles detected by the MPU6050
 long int accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
@@ -36,11 +40,28 @@ int MPUaddr = 0x68;                                                      //MPU a
 float accPitchOffset = 0, accRollOffset = 0;                             //offsets for the accelerometer values, laying it flat is the best way to calculate these
 float gyroContribution = .9996;                                          //used for the complimentary filter, how much weight the gyro's measurments are given vs the accelerometer
 
+BMP085 bmp;                                                              //The barometer object
+int pressure;                                                            //holds the air pressure readings
+long int altitude;                                                       //holds the current altitude
+long int seaLevelPress;                                                  //holds the local air pressure at sea level(used for altitude), must be entered
+
+HMC5883L magmtr;                                                         //The magentometer object
+int16_t mx, my, mz;                                                      //holds magentic field values on each axis
+float heading;                                                           //will store your angle in relation to the north pole, 0 = North
+
 void setup() 
 {
 
-  Wire.begin();                                                      
-  Serial.begin(9600);                                                    //Use only for debugging
+  Wire.begin();  
+  bmp.begin();                                                            //starts up the barometer
+  mag.initialize();                                                       //starts up the magentometer
+  
+  
+  
+  Serial.begin(9600);                                                                                       //Use serial only for debugging
+  Serial.println("Testing device connections..."); 
+  Serial.println(mag.testConnection() ? "HMC5883L connection successful" : "HMC5883L connection failed");
+  
   pinMode(13, OUTPUT);                                                   //if this pin is in use take out this line and the digital writes to it below
   
   setupMPU6050Registers();                                               //Setup the registers of the MPU-6050, look at datasheet for more info
@@ -70,7 +91,7 @@ void setup()
 void loop()
 {
 
-    readMPU6050_data();                                                                      //loads in all the raw readings from the MPU6050
+    readMPU6050data();                                                                      //loads in all the raw readings from the MPU6050
 
     gyroX -= gyroXoffset;                                                                    //Subtracting the calibration offset from the raw gyro values
     gyroY -= gyroYoffset;                                                
@@ -116,14 +137,38 @@ void loop()
     }
 
     temperature = temperature / 340.00 + 36.53;                                               //from data sheet, converts temp reading to celcius
-
-    Serial.print("Pitch: ");                                                                  //Debugging
+    
+    Serial.print("Pitch: ");                                                                  //For Debugging Purposes
     Serial.println(angle_pitch);
     Serial.print("Roll: ");
     Serial.println(angle_roll);
     Serial.print("Temperature: ")
     Serial.println(temperature);
+    Serial.print("Air Pressure: ")
+    Serial.println(pressure);
+    Serial.print("Altitude: ")
+    Serial.println(altitude);
+    Serial.print("Heading(0 = North): ");
+    Serial.println(heading);
     Serial.println("\n\n");
+  
+}
+
+void readBMPdata()                                                                               //Reads in and fills all the variables that hold BMP data
+{
+  
+  pressure = bmp.readPressure()
+  altitude = bmp.readAltitude(seaLevelPress);                                                     //uses local sea level air pressure to calculatre altitude
+  
+}
+
+void readHMCdata()                                                                                //Acts like a compass and calcualtes the drones bearing due north
+{
+
+   mag.getHeading(&mx, &my, &mz);                                                                  //gets the magnetic field strengths on each asix
+   float heading = atan2(my, mx);                                                                  //looks at x and y to determine the overall direction to the north pole
+   if(heading < 0) {heading += 2 * M_PI;}                                                          //Turns a negative angle positive
+   heading *= (180 / M_PI);                                                                        //Turns the angle from radians to degrees
   
 }
 
@@ -131,7 +176,7 @@ void loop()
 //-!!!!!!!!!!!!DONT EVER TOUCH THE CODE BELOW THIS EVER, I SWEAR THERE'LL BE HELL TO PAY!!!!!!!!!!!!!!!!!-
 //-------------                                    From, Corey                           -----------------
 //--------------------------------------------------------------------------------------------------------
-void readMPU6050_data()                                                //loads in all the readings from the corresponding registers in the MPU
+void readMPU6050data()                                                 //loads in all the readings from the corresponding registers in the MPU
 {                                                                      //all this comes from the data sheet 
                                                                        //ali, if you see this comment send me a text saying hi
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
@@ -139,13 +184,13 @@ void readMPU6050_data()                                                //loads i
   Wire.endTransmission();                                              //End the transmission
   Wire.requestFrom(0x68,14);                                           //Request 14 bytes from the MPU-6050
   while(Wire.available() < 14);                                        //Wait until all the bytes are received
-  accX = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_x variable
-  accY = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_y variable
-  accZ = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the acc_z variable
+  accX = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_x variable
+  accY = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_y variable
+  accZ = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_z variable
   temperature = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the temperature variable
-  gyroX = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_x variable
-  gyroY = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_y variable
-  gyroZ = Wire.read()<<8|Wire.read();                                 //Add the low and high byte to the gyro_z variable
+  gyroX = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_x variable
+  gyroY = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_y variable
+  gyroZ = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_z variable
 
 }
 
