@@ -7,8 +7,8 @@
 //***********************************************************************
 //
 //Gyro/Accel    -   MPU6050
-//Barometer     -   TBD
-//Magenetometer -   TBD
+//Barometer     -   BMP085/BMP180, either work with this code
+//Magenetometer -   HMC5883L
 
 //MPU6050 PINOUT(I2C):
 //  VCC  -  5V
@@ -16,16 +16,25 @@
 //  SDA  -  A4
 //  SCL  -  A5
 
-//Barameter PINOUT:
-//  -
+//BMP085/BMP180 PINOUT: 
+//  VCC  -  5V
+//  GND  -  GND
+//  SDA  -  A4
+//  SCL  -  A5
+//  3v3  -  3.3 volts out, can be used like an additional 3.3 volt supply for other components
+//  Don't worry about the other on board pins
 
-//Magenomter PINOUT:
-//  -
+//HMC5883L PINOUT(I2C):
+//  VCC  -  5V
+//  GND  -  GND
+//  SDA  -  A4
+//  SCL  -  A5
+//  DRDY -  Use only for faster data reading than 100 times a second
+//  3v3  -  3.3 volts out, can be used like an additional 3.3 volt supply for other components
 
 #include <Wire.h>
-#include <BMP085.h>
-
 #include "I2Cdev.h"
+#include <BMP085.h>
 #include "HMC5883L.h"
 
 int gyroX, gyroY, gyroZ;                                                 //holds the rate of change the quadcopter's angles detected by the MPU6050
@@ -91,8 +100,10 @@ void setup()
 void loop()
 {
 
-    readMPU6050data();                                                                      //loads in all the raw readings from the MPU6050
-
+    readMPU6050data();                                                                      //functions to read all the data we need from the IMU
+    readBMPdata();                                                                          //each function deals with a respective module of the IMU
+    readHMCdata();
+  
     gyroX -= gyroXoffset;                                                                    //Subtracting the calibration offset from the raw gyro values
     gyroY -= gyroYoffset;                                                
     gyroZ -= gyroZoffset;                                                
