@@ -130,15 +130,15 @@ void loop()
     angleRollAcc -=  accRollOffset;                                               
 
 
-    //below we use acomplimentary filter
+    //below we use a complimentary filter
     //basically a weighted average of gyro and accelerometer readings
     //result is essentially a bandpass filter that disregards random small spikes in accel readings
     //and corrects long term drift of the gyro, sort of like an integral proportional controller but averaged
 
     if(setGyroAngles)                                                                             //If the IMU is already started
     {                                                 
-        anglePitch = anglePitch * gyroContribution + anglePitchAcc * (1 - gyroContribution);     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
-        angleRoll = angleRoll * gyroContribution + angleRollAcc * (1 - gyroContribution);        
+        anglePitch = anglePitch * gyroContribution + anglePitchAcc * (1.0 - gyroContribution);     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
+        angleRoll = angleRoll * gyroContribution + angleRollAcc * (1.0 - gyroContribution);        
     }
     else
     {                                                                                         //Only occurs first start
@@ -153,11 +153,11 @@ void loop()
     Serial.println(angle_pitch);
     Serial.print("Roll: ");
     Serial.println(angle_roll);
-    Serial.print("Temperature: ")
+    Serial.print("Temperature: ");
     Serial.println(temperature);
-    Serial.print("Air Pressure: ")
+    Serial.print("Air Pressure: ");
     Serial.println(pressure);
-    Serial.print("Altitude: ")
+    Serial.print("Altitude: ");
     Serial.println(altitude);
     Serial.print("Heading(0 = North): ");
     Serial.println(heading);
@@ -168,7 +168,7 @@ void loop()
 void readBMPdata()                                                                               //Reads in and fills all the variables that hold BMP data
 {
   
-  pressure = bmp.readPressure()
+  pressure = bmp.readPressure();
   altitude = bmp.readAltitude(seaLevelPress);                                                     //uses local sea level air pressure to calculatre altitude
   
 }
@@ -177,7 +177,7 @@ void readHMCdata()                                                              
 {
 
    mag.getHeading(&mx, &my, &mz);                                                                  //gets the magnetic field strengths on each asix
-   float heading = atan2(my, mx);                                                                  //looks at x and y to determine the overall direction to the north pole
+   heading = atan2(my, mx);                                                                  //looks at x and y to determine the overall direction to the north pole
    if(heading < 0) {heading += 2 * M_PI;}                                                          //Turns a negative angle positive
    heading *= (180 / M_PI);                                                                        //Turns the angle from radians to degrees
   
@@ -207,7 +207,7 @@ void readMPU6050data()                                                 //loads i
 
 void setupMPU6050Registers()
 {
-  
+ 
   //Activate the MPU-6050
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
   Wire.write(0x6B);                                                    //Send the requested starting register
