@@ -54,7 +54,7 @@ int pressure;                                                            //holds
 long int altitude;                                                       //holds the current altitude
 long int seaLevelPress;                                                  //holds the local air pressure at sea level(used for altitude), must be entered
 
-HMC5883L magmtr;                                                         //The magentometer object
+HMC5883L mag;                                                         //The magentometer object
 int16_t mx, my, mz;                                                      //holds magentic field values on each axis
 float heading;                                                           //will store your angle in relation to the north pole, 0 = North
 
@@ -62,10 +62,9 @@ void setup()
 {
 
   Wire.begin();  
-  bmp.begin();                                                            //starts up the barometer
+  bmp.initialize();                                                        //starts up the barometer
+  bmp.setControl(BMP085_MODE_PRESSURE_1);                                  //Tells the bmp to read in pressure, put into standard quality mode            
   mag.initialize();                                                       //starts up the magentometer
-  
-  
   
   Serial.begin(9600);                                                                                       //Use serial only for debugging
   Serial.println("Testing device connections..."); 
@@ -168,8 +167,8 @@ void loop()
 void readBMPdata()                                                                               //Reads in and fills all the variables that hold BMP data
 {
   
-  pressure = bmp.readPressure();
-  altitude = bmp.readAltitude(seaLevelPress);                                                     //uses local sea level air pressure to calculatre altitude
+  pressure = bmp.getPressure();
+  altitude = bmp.getAltitude(seaLevelPress);                                                     //uses local sea level air pressure to calculatre altitude
   
 }
 
