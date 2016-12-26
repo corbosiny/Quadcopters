@@ -3,13 +3,13 @@
 //         @@@@@@@@@
 //    @@@@@@@@@@@@@@@@@@@@
 //  @@@@@@@@@@@@@@@@@@@@@@@@
-//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // ##########################
 // $  Feromone PID Control  $
 // $   keeps drone steady   $
 // $  Subteam: Corey, Ali   $
 // ########################## 
-//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 //PID stands for proportional integral derivative controller
 //it essentially will be given a desired state(certain pitch, roll, and yaw rotations) and adjust to that state
@@ -24,6 +24,7 @@ IMU imu(30);
 
 int targets[4] = {1000, 1000, 1000, 1000};          //pitch, roll, yaw, altitude
 int lastErrors[4] = {0,0,0,0};                      //used for derivative calculations, order: pitch, roll, yaw, altitude
+int targetsChanged[4] = {false, false, false, false}; //used to reset integral and derivative terms when targets are changed to avoid over compensation
 int integrals[4] = {0,0,0,0};                       //holds the integral components, order: pitch, roll, yaw, altitude
 long long int dt = millis();                        //holds the time since the last calculation, used in all time based calculations
 
@@ -173,7 +174,7 @@ void changeTargets(int newTargets[4])                                           
    lastErrors[1] = targets[1] - imu.angleRoll;
    lastErrors[2] = targets[2] - imu.heading;
    lastErrors[3] = targets[3] - imu.altitude;
-   for(int i = 0; i < 4; i++) {integrals[i] = 0;}
+   for(int i = 0; i < 4; i++) {integrals[i] = 0; targetsChanged[i] = true;}                 //setting all the flags in targetsChanged to signal a reset of the derivative and integral terms to avoid overcompensation
    
 }
 
@@ -182,6 +183,7 @@ void changeTarget(int index, int newTarget)
 
   targets[index] = newTarget;
   integrals[index] = 0;
+  targetsChanged[index] = true;                                                     //set the flag for a change of targets to reset the derivative and integral terms to avoid over compensastion
   switch(index)
   {
 
