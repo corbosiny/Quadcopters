@@ -45,6 +45,11 @@ void updateGPS()
   GPS.parse(GPS.lastNMEA());
   Serial.println(GPS.lastNMEA()); 
   
+  int examplePoint[2] = {0, 0};                                                           //used to test calcRelationHeading(), put random points here
+  float headingRelation = calcRelationHeading();
+  Serial.print("Heading Relation: ");
+  Serial.println(headingRelation);
+  
 }
 
 float calcRelationHeading(int point[2]) //0 = lattitude, 1 = longitude
@@ -54,6 +59,8 @@ float calcRelationHeading(int point[2]) //0 = lattitude, 1 = longitude
   int lonDifference = point[1] - GPS.longitude;                                           //calculates difference in longitude
 
   int distanceMag = sqrt(sq(latDifference) + sq(lonDifference));                          //uses distance formula to calculate the aprroximate distance
+  Serial.print("Distance Mag: ");
+  Serial.println(distanceMag);
   int angleRelation = atan(lonDifference/latDifference);                                  //the drone stays at 0 degrees heading so we calculate what angle the specified point is in relation to the drones heading
   angleRelation *= 180 / PI;                                                              //turn angle from radians into degrees
   if(angleRelation < 0 && latDifference < 0) {angleRelation += 180;}                      //if the angle is negative, but it is the x distance that is negative add 180 as atan can't determine whether y or x was negative in the calculation
