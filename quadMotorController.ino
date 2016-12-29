@@ -17,6 +17,7 @@ void setup()
 {
 
   for(int i = 0; i < 4; i++) {motors[i].attach(motorPins[i]);}                                            //attaches each pin to its respective motor
+  motorTest();  
   
 }
 
