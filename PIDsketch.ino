@@ -19,8 +19,8 @@
 #include <IMU.h>
 
 int pins[4] = {2,3,4,5};
-MotorController motors(pins);
-IMU imu(30);
+MotorController motors(pins);                       //change pins to whatever you need 
+IMU imu(30.2);                                      //insert actual sea level pressure here                                 
 
 int targets[4] = {1000, 1000, 1000, 1000};          //pitch, roll, yaw, altitude
 int lastErrors[4] = {0,0,0,0};                      //used for derivative calculations, order: pitch, roll, yaw, altitude
@@ -32,16 +32,35 @@ int proConstant = 1;                                //constants for each PID ter
 int intConstant = 1;                                
 int derConstant = 1;
 
+
+int testStateOverAxis = 1;                           //use for one to test the adjust state function and zero to test the adjustAxis function 
 void setup() 
 {
 
-    
+    Serial.begin(9600);
 
 }
 
 void loop() 
 {
 
+    if(testStateOverAxis == 1)
+    {
+        adjustState();                                  //adjust everything
+        delay(200);
+    }
+    else if(!testStateOverAxis) {
+        adjustAxis(0);                                  //pitch
+        adjustAxis(1);                                  //roll
+        adjustAxis(2);                                  //yaw
+        adjustAxis(3);                                  //altitude
+        delay(200);
+    }
+    else {
+        
+        int *newOffsets = calibrateMotors();
+        for(int i = 0; i < 4; i++) {Serial.print("Offset: "); Serial.println(newOffsets[i]);}
+    }
 
 }
 
@@ -72,7 +91,17 @@ void adjustPitch()                                                          //ad
 
   int outputs[4] = {output, output, -output, -output};                      //we flip the signs of the back two motors as they should be adjusted in the opposite direction of the front motors, this will always ensure that
   motors.adjustMotors(outputs);
-
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("Proportional: ");
+  Serial.println(proportional);
+  Serial.print("Derivative: ");
+  Serial.println(derivative);
+  Serial.print("Integral: ");
+  Serial.println(integrals[0]);
+  Serial.print("Output: ");
+  Serial.println(output);
+  Serial.println("\n\n");
 }
 
 void adjustRoll()                                                           //adjust roll toward desired roll by adjusting speed of left and right motors
@@ -88,7 +117,17 @@ void adjustRoll()                                                           //ad
 
   int outputs[4] = {output, -output, -output, output};              //we flip the right motors as they should always be adjusted in the opposite direction as the left motors
   motors.adjustMotors(outputs);
-
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("Proportional: ");
+  Serial.println(proportional);
+  Serial.print("Derivative: ");
+  Serial.println(derivative);
+  Serial.print("Integral: ");
+  Serial.println(integrals[1]);
+  Serial.print("Output: ");
+  Serial.println(output);
+  Serial.println("\n\n");
 }
 
 void adjustYaw()                                                            //uses magenometer to keep the drone pointed to a certain bearing in relation to north(which we have as 0/360 degreees)
@@ -105,7 +144,17 @@ void adjustYaw()                                                            //us
   
   int outputs[4] = {output, -output, output, -output};              //This code assumes that motors 1 and 3 are the clockwise motors, just flip the signs of everyone if it is the opposite
   motors.adjustMotors(outputs);                                     //we flip the signs of the right diagnol as it should always be adjusted in the opposite direction of the left diagnol
-  
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("Proportional: ");
+  Serial.println(proportional);
+  Serial.print("Derivative: ");
+  Serial.println(derivative);
+  Serial.print("Integral: ");
+  Serial.println(integrals[3]);
+  Serial.print("Output: ");
+  Serial.println(output);
+  Serial.println("\n\n");
 }
 
 void adjustAltitude()                                                      //adjust altitude toward desired altitude by either raising or lowering group motor speed
@@ -121,7 +170,17 @@ void adjustAltitude()                                                      //adj
 
   int adjusts[4] = {adjust, adjust, adjust, adjust};                      //to adjust altitude all the motors must be adjusted in the same way, so we flip no signs
   motors.adjustMotors(adjusts); 
-
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("Proportional: ");
+  Serial.println(proportional);
+  Serial.print("Derivative: ");
+  Serial.println(derivative);
+  Serial.print("Integral: ");
+  Serial.println(integrals[3]);
+  Serial.print("Output: ");
+  Serial.println(adjust);
+  Serial.println("\n\n");
 }
 
 void adjustAxis(int axisNum)                                                            //0 = pitch, 1 = roll, 2 = yaw, 3 = altitude
@@ -138,32 +197,43 @@ void adjustAxis(int axisNum)                                                    
   int output = (proportional + derivative + integrals[axisNum]) / 2;                    //We divide by two to split the adjustment between the two sets of motors, one set's speed is always increased, while ones is always decreased. splits the burden
   if(axisNum == 4) {output *= 2;}                                                       //if we are adjusting altitude, we undo the one half as all the motors will go one way
   int outputs[4] = {output, output, output, output};                                    //we put it in an arry format to work with the writeMotors command from the motorController library
+  
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("Proportional: ");
+  Serial.println(proportional);
+  Serial.print("Derivative: ");
+  Serial.println(derivative);
+  Serial.print("Integral: ");
+  Serial.println(integrals[0]);
+  Serial.print("Output: ")
+  Serial.println(output);
+  Serial.println("\n\n");
+   
   switch(axisNum)                                                                       //different axis divide the motors into different sets, this switch figures out which we are working on
   {
     case 0:                                                                             //pitch, split into front two and back two, the back two get the opposite adjust from the front two
     outputs[2] *= -1;
-    outputs[3] *= -1;
-    motors.adjustMotors(outputs);  
+    outputs[3] *= -1; 
     break;
     
     case 1:                                                                             //roll, split into left two and right two motors, right two always get the opposite adjust from the right two 
     outputs[1] *= -1;
     outputs[2] *= -1;
-    motors.adjustMotors(outputs);
     break;
     
     case 2:                                             //yaw, splits the motors along the left and right diagnols, one goes clockwise while the other spinds counter, the right diagnol always gets the opposite offset of he left diagnol
     outputs[1] *= -1;                                   //This line assumes that motors 1 and 3 are the clockwise motors, just flip the signs of everyone if it is the opposite
     outputs[3] *= -1;
-    motors.adjustMotors(outputs);
     break;
     
     case 3:                                             //altitude, all motors get the same adjust as the entire drone goes up or down to adjust this
-    motors.adjustMotors(outputs);
     break;
     
   }
   
+    motors.adjustMotors(outputs);
+    
 }
 
 void changeTargets(int newTargets[4])                                                        //adjust target state values, used so that a sudden change in targets won't look like a massive movement from the target to the integral and especially derivative component
