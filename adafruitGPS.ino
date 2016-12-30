@@ -1,3 +1,12 @@
+//Test code for reading GPS data and calculating vectors to other points
+//Coder - Corey Hulse
+//***See flight system manual for a description of all the other systems***
+//GPS = Adafruit Ultimate GPS module
+//rxPin and txPin to their respecitve pins on the GPS
+//Vin - 3 to 5 volts
+//GND - GND
+//Don't worry about the rest of the pins
+
 #include <SoftwareSerial.h>
 #include <Adafruit_GPS.h>
 
@@ -10,6 +19,7 @@ void setup()
   Serial.begin(9600);             
   GPS.begin(9600);
   gpsSerial.begin(9600);
+  GPS.sendCommand("$PCGMD,33,0*6D");
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);                                             //sets up GPS for only RMC and GGA commands
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_10HZ);                                               //sets the gps for 10Hz refresh rate, may change depending on stability
   
