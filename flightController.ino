@@ -1,3 +1,14 @@
+//
+//Feromone Robotics Qaudcopter main flight controller
+//This controller is responsible for calculating the change of states needed in order to
+//fly toward a certain point and feeds those states to the PIDS
+//Coders: Corey Hulse
+//***See flight system manual for a description of all the other systems***
+//GPS = Adafruit Ultimate GPS module
+//rxPin and txPin to their respecitve pins on the GPS
+//Vin - 3 to 5 volts
+//GND - GND
+//Don't worry about the rest of the pins
 #include <SoftwareSerial.h>
 #include <Adafruit_GPS.h>
 
@@ -21,6 +32,7 @@ void setup()
 
   GPS.begin(9600);                                                        //kickstarting our GPS
   gpsSerial.begin(9600);
+  GPS.sendCommand("$PCGMD,33,0*6D");
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_10HZ);
 
