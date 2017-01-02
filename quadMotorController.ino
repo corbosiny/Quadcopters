@@ -17,7 +17,6 @@ void setup()
 {
 
   for(int i = 0; i < 4; i++) {motors[i].attach(motorPins[i]);}                                            //attaches each pin to its respective motor
-  motorTest();  
   
 }
 
@@ -43,10 +42,10 @@ void writeMotors(int speeds[])                                                  
   
 }
 
-void adjustMotors(int adjustments[])                                                                      //takes in an adjustment and will add that to the current speed of the motor, this is why we keep track of their current speeds
+void adjustMotors(float adjustments[])                                                                      //takes in an adjustment and will add that to the current speed of the motor, this is why we keep track of their current speeds
 {
-
-   for(int i = 0; i < 4; i++) {currentMotorSpeeds[i] += adjustments[i];}
+  
+   for(int i = 0; i < 4; i++) {currentMotorSpeeds[i] += (int)adjustments[i];}
    writeMotors(currentMotorSpeeds);
 
 }
@@ -72,4 +71,6 @@ void motorTest()                                                                
   }
   
 }
+
+void changeOffsets(int newOffsets[4]) {memcpy(motorSpeedOffsets, newOffsets, sizeof(newOffsets));}
 
