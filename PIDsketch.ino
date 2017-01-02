@@ -81,15 +81,15 @@ void adjustState()                                                          //go
 void adjustPitch()                                                          //adjust pitch toward desired pitch by adjusting speed of front and back motors
 {
 
-  int error = imu.anglePitch - targets[0];                                  //calculates error term
-  int proportional = proConstant * error;                                   //calculates all the parts of the PID term that use the error(Proportional, Integral, Derivative)
-  int derivative = derConstant * (error - lastErrors[0]) / dt;
+  float error = imu.anglePitch - targets[0];                                  //calculates error term
+  float proportional = proConstant * error;                                   //calculates all the parts of the PID term that use the error(Proportional, Integral, Derivative)
+  float derivative = derConstant * (error - lastErrors[0]) / dt;
   integrals[0] += (error / (millis() - dt)) * intConstant;
 
   lastErrors[1] = error;                                                    //updates last error for the next derivative calcualtion
-  int output = (proportional + derivative + integrals[0]) / 2;              //makes our output amount and divide by two as each set of motors will take half of the adjust for the adjustMotors function of the motorController library, this will only adjust the currentMotorspeeds according to our PID outputs
+  float output = (proportional + derivative + integrals[0]) / 2;              //makes our output amount and divide by two as each set of motors will take half of the adjust for the adjustMotors function of the motorController library, this will only adjust the currentMotorspeeds according to our PID outputs
 
-  int outputs[4] = {output, output, -output, -output};                      //we flip the signs of the back two motors as they should be adjusted in the opposite direction of the front motors, this will always ensure that
+  float outputs[4] = {output, output, -output, -output};                      //we flip the signs of the back two motors as they should be adjusted in the opposite direction of the front motors, this will always ensure that
   motors.adjustMotors(outputs);
   Serial.print("Error: ");
   Serial.println(error);
@@ -107,15 +107,15 @@ void adjustPitch()                                                          //ad
 void adjustRoll()                                                           //adjust roll toward desired roll by adjusting speed of left and right motors
 {
 
-  int error = imu.angleRoll - targets[1];
-  int proportional = proConstant * error;
-  int derivative = derConstant * (error - lastErrors[1]) / (millis() - dt);
+  float error = imu.angleRoll - targets[1];
+  float proportional = proConstant * error;
+  float derivative = derConstant * (error - lastErrors[1]) / (millis() - dt);
   integrals[1] += (error / (millis() - dt)) * intConstant;
 
   lastErrors[1] = error;
-  int output = (proportional + derivative + integrals[1]) / 2;
+  float output = (proportional + derivative + integrals[1]) / 2;
 
-  int outputs[4] = {output, -output, -output, output};              //we flip the right motors as they should always be adjusted in the opposite direction as the left motors
+  float outputs[4] = {output, -output, -output, output};              //we flip the right motors as they should always be adjusted in the opposite direction as the left motors
   motors.adjustMotors(outputs);
   Serial.print("Error: ");
   Serial.println(error);
@@ -133,16 +133,16 @@ void adjustRoll()                                                           //ad
 void adjustYaw()                                                            //uses magenometer to keep the drone pointed to a certain bearing in relation to north(which we have as 0/360 degreees)
 {
 
-  int error = imu.heading - targets[2];
-  int proportional = proConstant * error;
-  int derivative = derConstant * (error - lastErrors[2]) / (millis() - dt);
+  float error = imu.heading - targets[2];
+  float proportional = proConstant * error;
+  float derivative = derConstant * (error - lastErrors[2]) / (millis() - dt);
   integrals[2] += (error / (millis() - dt)) * intConstant;
 
   lastErrors[2] = error;
-  int output = (proportional + derivative + integrals[2]) / 2;
+  float output = (proportional + derivative + integrals[2]) / 2;
 
   
-  int outputs[4] = {output, -output, output, -output};              //This code assumes that motors 1 and 3 are the clockwise motors, just flip the signs of everyone if it is the opposite
+  float outputs[4] = {output, -output, output, -output};              //This code assumes that motors 1 and 3 are the clockwise motors, just flip the signs of everyone if it is the opposite
   motors.adjustMotors(outputs);                                     //we flip the signs of the right diagnol as it should always be adjusted in the opposite direction of the left diagnol
   Serial.print("Error: ");
   Serial.println(error);
@@ -160,15 +160,15 @@ void adjustYaw()                                                            //us
 void adjustAltitude()                                                      //adjust altitude toward desired altitude by either raising or lowering group motor speed
 {
 
-  int error = imu.altitude - targets[3];
-  int proportional = proConstant * error;
-  int derivative = derConstant * (error - lastErrors[3]) / (millis() - dt);
+  float error = imu.altitude - targets[3];
+  float proportional = proConstant * error;
+  float derivative = derConstant * (error - lastErrors[3]) / (millis() - dt);
   integrals[3] += (error / (millis() - dt)) * intConstant;
 
   lastErrors[3] = error;
-  int adjust = proportional + integrals[3] + derivative;
+  float adjust = proportional + integrals[3] + derivative;
 
-  int adjusts[4] = {adjust, adjust, adjust, adjust};                      //to adjust altitude all the motors must be adjusted in the same way, so we flip no signs
+  float adjusts[4] = {adjust, adjust, adjust, adjust};                      //to adjust altitude all the motors must be adjusted in the same way, so we flip no signs
   motors.adjustMotors(adjusts); 
   Serial.print("Error: ");
   Serial.println(error);
@@ -187,16 +187,16 @@ void adjustAxis(int axisNum)                                                    
 {
 
   int *data = imu.readIMUdata();
-  int error = data[axisNum] - targets[axisNum];                                     //calculates error term then uses the PID formulas to get the Proportional, integral, and derivative term
-  int proportional = proConstant * error;                                               
-  int derivative = derConstant * (error - lastErrors[axisNum]) / (millis() - dt);
+  float error = data[axisNum] - targets[axisNum];                                     //calculates error term then uses the PID formulas to get the Proportional, integral, and derivative term
+  float proportional = proConstant * error;                                               
+  float derivative = derConstant * (error - lastErrors[axisNum]) / (millis() - dt);
   integrals[axisNum] += (error / (millis() - dt)) * intConstant;
 
   lastErrors[axisNum] = error;                                                          //updates the last error term that the derivative uses                          
 
-  int output = (proportional + derivative + integrals[axisNum]) / 2;                    //We divide by two to split the adjustment between the two sets of motors, one set's speed is always increased, while ones is always decreased. splits the burden
+  float output = (proportional + derivative + integrals[axisNum]) / 2;                    //We divide by two to split the adjustment between the two sets of motors, one set's speed is always increased, while ones is always decreased. splits the burden
   if(axisNum == 4) {output *= 2;}                                                       //if we are adjusting altitude, we undo the one half as all the motors will go one way
-  int outputs[4] = {output, output, output, output};                                    //we put it in an arry format to work with the writeMotors command from the motorController library
+  float outputs[4] = {output, output, output, output};                                    //we put it in an arry format to work with the writeMotors command from the motorController library
   
   Serial.print("Error: ");
   Serial.println(error);
@@ -206,7 +206,7 @@ void adjustAxis(int axisNum)                                                    
   Serial.println(derivative);
   Serial.print("Integral: ");
   Serial.println(integrals[0]);
-  Serial.print("Output: ")
+  Serial.print("Output: ");
   Serial.println(output);
   Serial.println("\n\n");
    
