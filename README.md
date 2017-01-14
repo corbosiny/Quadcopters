@@ -3,7 +3,7 @@ Arduino libraries for the quadcopters of the feromone robotics team
 
 This folder should/will contain:
 
--All code directly involved in maneuvering the drone                   <-- WHAT WE ARE WORKING ON RIGHT NOW!!!
+-All code directly involved in maneuvering the drone                   <-- BEING TESTED RIGHT NOW
     
     1. The motor controller code(for ESCs)
     
@@ -22,6 +22,8 @@ This folder should/will contain:
     6.Overall flight controller
     
     7. Test/callibration code for making sure the drone is functioning properly
+    
+***NOTE: the zips are library implementation for the components, the .ino files are usually test code for the components once built***
 
 GPS related code for tracking/planning flight
 
