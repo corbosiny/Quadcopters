@@ -7,19 +7,29 @@ This folder should/will contain:
     
     1. The motor controller code(for ESCs)
     
-    2. The flight controller(IMU and adjust code) https://www.youtube.com/watch?v=4BoIE8YQwM8(code) <-Video on the IMU code
+    2. IMU https://www.youtube.com/watch?v=4BoIE8YQwM8(code) <-Video on the IMU code
     
-    3. Any sensors whos ouptut contribute to flight adjustment
+    3. The PID Code for stabalizing the drone
     
-    4. Test/callibration code for making sure the drone is functioning properly
+    4. Any sensors whos ouptut contribute to flight adjustment:
+        -GPS
+        -Accel/Gyro
+        -Barometer
+        -magnetometer
+    
+    5. Kalman filter for signal filtering and state estimation
+    
+    6.Overall flight controller
+    
+    7. Test/callibration code for making sure the drone is functioning properly
 
 GPS related code for tracking/planning flight
 
-    -More to come on the modules for this
+    -We are using the adafruit ultimate GPS module
 
 Sensors for measurments the drone needs to take
     
-    -More to come, many modules can be used
+    -Almost all are contained within the code of the modules they work with(EX: accel/gyro in IMU code)
 
 Code setting up the basic communication between drones
     
@@ -28,6 +38,6 @@ Code setting up the basic communication between drones
 Support repositories or repositories that build off of this:
 
     -Image Processing
-
-    -AI
+    -AI/Machine Learning
+    -Mathmatics
 //Ask me if you need or want into these folders
