@@ -41,7 +41,7 @@ int gyroX, gyroY, gyroZ;                                                 //holds
 long int accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
 float anglePitch, angleRoll;                                             //first the gyro calculated angles, then the IMU pitch and roll values
 float angleRollAcc, anglePitchAcc;                                       //calculated rotaion angles based off accelerometer
-long gyroXoffset, gyroYoffet, gyroZoffset;                               //used for calibration of the initial gyro reading offsets
+long gyroXoffset, gyroYoffset, gyroZoffset;                               //used for calibration of the initial gyro reading offsets
 boolean setGyroAngles = 0;                                               //used to trigger initial angle readings, only is used on startup
 int temperature;                                                         //self explanatory bruh
 
@@ -79,7 +79,7 @@ void setup()
   for (int i; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
   {                                           
       
-      read_mpu_6050_data();                                              //Read the raw acc and gyro data from the MPU6050
+      readMPU6050data();                                              //Read the raw acc and gyro data from the MPU6050
       gyroXoffset += gyroX;                                              //keep running total of 2000 readings
       gyroYoffset += gyroY;                                              
       gyroZoffset += gyroZ;                                              
@@ -149,9 +149,9 @@ void loop()
     temperature = temperature / 340.00 + 36.53;                                               //from data sheet, converts temp reading to celcius
     
     Serial.print("Pitch: ");                                                                  //For Debugging Purposes
-    Serial.println(angle_pitch);
+    Serial.println(anglePitch);
     Serial.print("Roll: ");
-    Serial.println(angle_roll);
+    Serial.println(angleRoll);
     Serial.print("Temperature: ");
     Serial.println(temperature);
     Serial.print("Air Pressure: ");
