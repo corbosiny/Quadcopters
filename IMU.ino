@@ -37,11 +37,11 @@
 #include <BMP085.h>
 #include "HMC5883L.h"
 
-int gyroX, gyroY, gyroZ;                                                 //holds the rate of change the quadcopter's angles detected by the MPU6050
-long int accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
+float gyroX, gyroY, gyroZ;                                                 //holds the rate of change the quadcopter's angles detected by the MPU6050
+float accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
 float anglePitch, angleRoll;                                             //first the gyro calculated angles, then the IMU pitch and roll values
-float angleRollAcc, anglePitchAcc;                                       //calculated rotaion angles based off accelerometer
-long gyroXoffset = 0, gyroYoffset = 0, gyroZoffset = 0;                               //used for calibration of the initial gyro reading offsets
+float angleRollAcc = 0, anglePitchAcc = 0;                                       //calculated rotaion angles based off accelerometer
+float gyroXoffset = 0, gyroYoffset = 0, gyroZoffset = 0;                               //used for calibration of the initial gyro reading offsets
 boolean setGyroAngles = 0;                                               //used to trigger initial angle readings, only is used on startup
 int temperature;                                                         //self explanatory bruh
 
@@ -82,7 +82,10 @@ void setup()
       readMPU6050data();                                              //Read the raw acc and gyro data from the MPU6050
       gyroXoffset += gyroX;                                              //keep running total of 2000 readings
       gyroYoffset += gyroY;                                              
-      gyroZoffset += gyroZ;                                              
+      gyroZoffset += gyroZ;
+      accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));                                              //Calculate the total accelerometer vector magnitude
+      anglePitchAcc += asin((float)accY/accMag)* 57.296;                                       //Calculate the pitch angle
+      angleRollAcc += asin((float)accX/accMag)* -57.296; 
       delay(3);                                                          
   
   }
@@ -91,7 +94,10 @@ void setup()
   gyroXoffset /= 2000;                                                  //Divide the gyro variables by 2000 to get the avarage offset
   gyroYoffset /= 2000;                                                  
   gyroZoffset /= 2000;                                                  
-
+  accPitchOffset anglePitchAcc / 2000;
+  accRollOffset = angleRollAcc / 2000;
+  anglePitchAcc = 0;
+  angleRollAcc = 0;
   digitalWrite(13, LOW);                                               
                                                                          
 }
