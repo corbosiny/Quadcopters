@@ -47,7 +47,7 @@ int temperature;                                                         //self 
 
 int MPUaddr = 0x68;                                                      //MPU address on the i2c bus, DO NOT CHANGE I WILL FIND YOU 
 float accPitchOffset = 0, accRollOffset = 0;                             //offsets for the accelerometer values, laying it flat is the best way to calculate these
-float gyroContribution = .9996;                                          //used for the complimentary filter, how much weight the gyro's measurments are given vs the accelerometer
+float gyroContribution = .96;                                          //used for the complimentary filter, how much weight the gyro's measurments are given vs the accelerometer
 
 BMP085 bmp;                                                              //The barometer object
 int pressure;                                                            //holds the air pressure readings
