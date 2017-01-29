@@ -57,7 +57,6 @@ long int seaLevelPress;                                                  //holds
 HMC5883L mag;                                                         //The magentometer object
 int16_t mx, my, mz;                                                      //holds magentic field values on each axis
 float heading;                                                           //will store your angle in relation to the north pole, 0 = North
-int lastPrint = millis();
 void setup() 
 {
 
@@ -153,8 +152,6 @@ void loop()
     }
 
     temperature = temperature / 340.00 + 36.53;                                               //from data sheet, converts temp reading to celcius
-  if(millis() - lastPrint > 3000)
-  {
     Serial.print("Pitch: ");                                                                  //For Debugging Purposes
     Serial.println(anglePitch);
     Serial.print("Roll: ");
@@ -169,7 +166,6 @@ void loop()
     Serial.println(heading);
     Serial.println("\n\n");
     lastPrint = millis();
-  }
   
 }
 
