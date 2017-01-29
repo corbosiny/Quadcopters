@@ -41,7 +41,7 @@ int gyroX, gyroY, gyroZ;                                                 //holds
 long int accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
 float anglePitch, angleRoll;                                             //first the gyro calculated angles, then the IMU pitch and roll values
 float angleRollAcc, anglePitchAcc;                                       //calculated rotaion angles based off accelerometer
-long gyroXoffset, gyroYoffset, gyroZoffset;                               //used for calibration of the initial gyro reading offsets
+long gyroXoffset = 0, gyroYoffset = 0, gyroZoffset = 0;                               //used for calibration of the initial gyro reading offsets
 boolean setGyroAngles = 0;                                               //used to trigger initial angle readings, only is used on startup
 int temperature;                                                         //self explanatory bruh
 
@@ -76,7 +76,7 @@ void setup()
 
   digitalWrite(13, HIGH);                                                
   
-  for (int i; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
+  for (int i = 0; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
   {                                           
       
       readMPU6050data();                                              //Read the raw acc and gyro data from the MPU6050
