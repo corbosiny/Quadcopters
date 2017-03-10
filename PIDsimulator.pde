@@ -1,27 +1,68 @@
-int baseCoordinates[] = {50, 250}; //coordinates for each agent
+//sets up coordinates, PID constants, and active forces for our agents
+int baseCoordinates[] = {50, 250};
 int baseCoordinates2[] = {100, 250};
 int baseCoordinates3[] = {150, 250};
 int baseCoordinates4[] = {200, 250};
-float constants[] = {0,0,0};  //the PID constants for each agent
-float constants2[] = {2, 0, 0};
-float constants3[] = {2, 2, 0};
-float constants4[] = {2, 2, .2};
+float constants[] = {0,0,0};
+float constants2[] = {4, 0, 0};
+float constants3[] = {4, 10, 0};
+float constants4[] = {4, 10, .3};
+float forces[] = {-50, -50};
 
-Agent agents1 = new Agent(baseCoordinates,-80, constants);          //just initializing all of our agents
-Agent agents2 = new Agent(baseCoordinates2, -80, constants2);
-Agent agents3 = new Agent(baseCoordinates3, -80, constants3);
-Agent agents4 = new Agent(baseCoordinates4,  -80, constants4);
-Agent agents[] = {agents1, agents2, agents3, agents4};              //holds all of our agents
+//setting up our agents
+Agent agents1 = new Agent(baseCoordinates, forces, constants, color(255, 255, 255));
+Agent agents2 = new Agent(baseCoordinates2, forces, constants2, color(255,0,0));
+Agent agents3 = new Agent(baseCoordinates3, forces, constants3, color(0,255,0));
+Agent agents4 = new Agent(baseCoordinates4,  forces, constants4, color(0,255,255));
+Agent agents[] = {agents1, agents2, agents3, agents4};
 
 void setup()
 {
-  size(500, 500);
+  size(500, 500); //just making our canvas
 }
 
 void draw()
 {
   
-  background(0);                                                    //redraws the background so we dont get all the old states
-  for(int i = 0; i < agents.length; i++) {agents[i].applyForce();}  //go through all agents and update their states
+  background(0); //reset the background
+  for(int i = 0; i < agents.length; i++) {agents[i].applyForce();} //calculate new states of the drones based off PID calcs and forces
+  println(agents[3].integral); //debugging
+  frame.setTitle(int(frameRate) + " fps");
+  
+}
+
+void keyPressed()
+{
+ 
+    if(key == 'w') //increase force in up y direction, negative force is up
+    {
+      for(int i = 0; i < agents.length; i++) {agents[i].forces[1] -= 10;}  
+    }
+    else if(key == 's') //increase force in down y direction, negative force is up
+    {
+       for(int i = 0; i < agents.length; i++) {agents[i].forces[1] += 10;}
+    }
+
+
+    if(key == 'a')  //increase force in left x direction, negative force is left
+    {
+       for(int i = 0; i < agents.length; i++) {agents[i].forces[0] -= 10;}
+    }
+    else if(key == 'd') //increase force in right x direction, negative force is left
+    {
+       for(int i = 0; i < agents.length; i++) {agents[i].forces[0] += 10;} 
+    }
+    
+}
+
+void mouseClicked() //sets new desired state for agents
+{
+  
+  for(int i = 0; i < agents.length; i++)
+  {
+    agents[i].desiredState[0] = mouseX; //set the new desired state for each agent to the mouse coordinates
+    agents[i].desiredState[1] = mouseY;
+    agents[i].reset = true;  //sets reset so we can reset our derivative and integral term to true so that we don't have a spike in the derivative term
+  } 
 
 }
