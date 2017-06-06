@@ -14,17 +14,18 @@ Squad testSquad2;
 void setup()
 {
   surface.setTitle("Swarm Simulation");
-  fullScreen();
+  //fullScreen();
+  size(500, 500);
   surface.setResizable(true);
-  for(int i = 0; i < 4; i++) 
-  {
-    int tempCoordinates[] = {50 * i, 50};
-    int tempAdjust[] = {10+10 * i, 10+10 * i};
-    squadDrones[i] = new Drone(new Agent(tempCoordinates, forces, constants), tempAdjust);
-  }
+  //for(int i = 0; i < 4; i++) 
+  //{
+  //  int tempCoordinates[] = {50 * i, 50};
+  //  int tempAdjust[] = {10+10 * i, 10+10 * i};
+  //  squadDrones[i] = new Drone(new Agent(tempCoordinates, forces, constants), tempAdjust);
+  //}
 
-  testSquad = new Squad(leadDrone, squadDrones);
-  testSquad.createSquadMate();
+  testSquad = new Squad(leadDrone);
+  //testSquad.createSquadMate();
   testSquad2 = new Squad(leadDrone2);
 }
 
@@ -52,24 +53,22 @@ void keyPressed()
  
   if(key == 'z') //transfers a drone from squad 1 to squad 2 if any
   {
-     if(testSquad.members != null && testSquad.members.length != 0)
+     if(testSquad.members != null && testSquad.members.length != 0) //32 S
      {
-       Drone tempDrone = testSquad.members[testSquad.members.length - 1];
-       testSquad.members = (Drone[])shorten(testSquad.members);
+       Drone tempDrone = testSquad.removeSquadMate();
+       int tempAdjusts[] = testSquad2.formationFunction();
+       tempDrone.adjusts = tempAdjusts;
        testSquad2.addSquadMate(tempDrone);
-       int tempAdjust[] = {10 + (testSquad2.members.length - 1) * 10, 10 + (testSquad2.members.length - 1) * 10};
-       tempDrone.adjusts = tempAdjust;
      }  
   }
   else if(key == 'x') //transfers a drone from squad 2 to squad 1 if any
   {
      if(testSquad2.members != null && testSquad2.members.length != 0)
      {
-       Drone tempDrone = testSquad2.members[testSquad2.members.length - 1];
-       testSquad2.members = (Drone[])shorten(testSquad2.members);
+       Drone tempDrone = testSquad2.removeSquadMate();
+       int tempAdjusts[] = testSquad.formationFunction();
+       tempDrone.adjusts = tempAdjusts;
        testSquad.addSquadMate(tempDrone);
-       int tempAdjust[] = {10 + (testSquad.members.length - 1) * 10, 10 + (testSquad.members.length - 1) * 10};
-       tempDrone.adjusts = tempAdjust;
      } 
  }
  

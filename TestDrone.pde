@@ -2,7 +2,7 @@ class TestDrone extends Drone
 {
 
     TestDrone(Agent droneBody) {super(droneBody);}
-    
+    boolean squadReset = false;    
     void randomMove() //randomly moves the drone leader around
     {
       
