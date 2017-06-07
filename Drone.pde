@@ -32,10 +32,10 @@ class Drone
   {
     if(lead != null)
     {
-      if(droneBody.desiredState[0] != lead.droneBody.coordinates[0] + adjusts[0] || droneBody.desiredState[1] != lead.droneBody.coordinates[1] + adjusts[1])
+      if(droneBody.desiredState[0] != lead.droneBody.desiredState[0] + adjusts[0] || droneBody.desiredState[1] != lead.droneBody.desiredState[1] + adjusts[1])
       {
-        droneBody.desiredState[0] = lead.droneBody.coordinates[0] + adjusts[0];
-        droneBody.desiredState[1] = lead.droneBody.coordinates[1] + adjusts[1];
+        droneBody.desiredState[0] = lead.droneBody.desiredState[0] + adjusts[0];
+        droneBody.desiredState[1] = lead.droneBody.desiredState[1] + adjusts[1];
         droneBody.reset = true;
       }
       

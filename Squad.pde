@@ -8,6 +8,7 @@ class Squad
   int numInShell = 0;
   int shellNum = 0;
   int mag;  
+  
   Squad(TestDrone leader)
   {
     squadLeader = leader;
@@ -35,97 +36,81 @@ class Squad
   
   }
   
-  //int[] formationFunction()
-  //{
-  //  int adjusts[] = {0, 0};
-  //  try
-  //  {
-  //    int mag = ((members.length / 8) * 20) + 20;          
-  //    float angle = map((members.length) % 8, 0, 8, 0, 2 * PI);
-  //    adjusts[0] = int(cos(angle) * mag);
-  //    adjusts[1] = int(sin(angle) * mag);
-  //    println("Members Length: ", members.length);
-  //    println("Mag: ", mag);
-  //    println("Angle: ", angle);
-  //    println("X: ", adjusts[0]);
-  //    println("Y: ", adjusts[1]);
-  //    println();
-  //    return adjusts;
-  //  }
-  //  catch(NullPointerException e)
-  //  {
-  //    int mag = ((0 / 8) * 20) + 20;
-  //    float angle = map(0, 0, 8, 0, 2 * PI);
-  //    adjusts[0] = int(cos(angle) * mag);
-  //    adjusts[1] = int(sin(angle) * mag);
-  //    println("Num Members: ",0);
-  //    println("Mag: ", mag);
-  //    println("Angle: ", angle);
-  //    println("X: ", adjusts[0]);
-  //    println("Y: ", adjusts[1]);
-  //    println();
-  //    return adjusts;
-  //  }
-    
-//  }
-  
   int []formationFunction()
  {
 
-  int adjusts[] = {0, 0};
-  try
-  {
-    mag = shellNum * 20 + 20;
-    float angle = map((members.length) % shellMax, 0, shellMax, 0, 2 * PI);  
-    adjusts[0] = int(cos(angle) * mag);
-    adjusts[1] = int(sin(angle) * mag);
-    numInShell++;
-    if((shellNum == 0 && (numInShell == shellMax - 1)) || numInShell == shellMax) {numInShell = 0; shellMax = int(shellMax * (float(mag + 20) / mag)); shellNum++;}
-    return adjusts;
-  }
-  catch(NullPointerException e)
-  {
-          adjusts[0] = 20;
-          adjusts[1] = 0;    
-          numInShell++;
-          return adjusts;
-  }
+        int adjusts[] = {0, 0};
+        mag = shellNum * 20 + 20;
+        float angle = map(numInShell, 0, shellMax, 0, 2 * PI);
+        adjusts[0] = int(cos(angle) * mag);
+        adjusts[1] = int(sin(angle) * mag);
+        numInShell++;
+        return adjusts;
 
-}
+ }
+ 
+ int []formationFunction(int numIn, int shellNum, int shellMax)
+ {
+   int adjusts[] = {0,0};
+   
+   return adjusts;
+ }
+ 
+ void reverseFormationFunction()
+ {
+    numInShell--;
+    if(numInShell == -1 && shellNum > 1)
+    {
+      shellNum--;
+      shellMax = int(shellMax * (float(mag - 20) / float(mag)));
+      numInShell = shellMax - 1;  
+      mag = shellNum * 20 + 20;
+    }
+    else if(numInShell == -1 && shellNum == 1 )
+    {
+     numInShell = 7;
+     shellNum = 0;
+     shellMax = 8;
+     mag = 20;
+    }
+    
+ }
   
-  void createSquadMate(int num) //takes in how many new drones you want to spawn
+  Drone[] createSquadMate(int num) //takes in how many new drones you want to spawn
   {
-    for(int i = 0; i < num; i++) {createSquadMate();}
-  }
+    Drone drones[] = new Drone[num];
+    for(int i = 0; i < num; i++) {drones[num] = createSquadMate();}
+    return drones;
+  } 
   
-  void createSquadMate()
+  Drone createSquadMate()
   {
     Drone newDrone;
     Agent tempAgent; //will be the rigid body for our newDrone
     try
     {
-      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + (members.length + 1) * 10, squadLeader.droneBody.coordinates[1] + (members.length + 1) * 10};
+      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + (shellNum + 1) * 20 + 20, squadLeader.droneBody.coordinates[1] + (shellNum + 1) * 20};
       tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants);  
-      int tempAdjust[] = formationFunction();
-      newDrone = new Drone(tempAgent, tempAdjust);
+      newDrone = new Drone(tempAgent);
     }
     catch (NullPointerException e)
     {
-      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + 10, squadLeader.droneBody.coordinates[1] + 10};
+      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + 20, squadLeader.droneBody.coordinates[1]};
       tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants);
-      int tempAdjust[] = formationFunction();
-      newDrone = new Drone(tempAgent, tempAdjust);
+      newDrone = new Drone(tempAgent);
     }
-    addSquadMate(newDrone);
+    return newDrone;
   }
   
   void addSquadMate(Drone newDrone)        //actually adds the new drone to the squad
   {
     if(members == null) {members = new Drone[1]; members[0] = newDrone;}
     else{members = (Drone[])append(members, newDrone);}
+    int tempAdjust[] = formationFunction();
+    newDrone.adjusts = tempAdjust;
+    spaceOut();
+    if(numInShell == shellMax) {numInShell = 0; shellMax = int(shellMax * (float(mag + 20) / mag)); shellNum++;}
     members[members.length - 1].lead = squadLeader;
-    print("numInShell: ", numInShell);
-    print();
   }
   
   void addSquadMate(Drone newDrone, int[] adjusts)        //actually adds the new drone to the squad
@@ -138,21 +123,22 @@ class Squad
   
   Drone removeSquadMate()
   {
-    Drone tempDrone = members[members.length - 1];
+    Drone tempDrone = null;
+    if(members == null || members.length == 0) {return tempDrone;}
+    tempDrone = members[members.length - 1];
     members = (Drone[])shorten(members);
-    numInShell--;
-    println("Num In Shell: ", numInShell);
-    println("Shell Num: ", shellNum);
-    println("Shell Max: ", shellMax);
-    println();
-    if(numInShell == -1)
-    {
-      shellNum--;
-      shellMax = int(shellMax * float((mag - 20) / mag));
-      numInShell = shellMax;      
-    }
+    reverseFormationFunction();
+    spaceOut();
     return tempDrone;  
   }
+ 
+ int transferDrone(Squad squad2) //transfers a drone from squad1 to squad 2
+ {
+  if(this.members == null || this.members.length == 0) {return 0;}
+  Drone tempDrone = this.removeSquadMate();
+  squad2.addSquadMate(tempDrone);
+  return 1;
+ }
   
   void update()
   {
@@ -160,6 +146,28 @@ class Squad
     if(members != null) {for(int i = 0; i < members.length; i++) {members[i].update();}}
   }
   
-  void move(int x, int y) {squadLeader.move(x, y);}
+ void move(int x, int y) {squadLeader.move(x, y);}
+  
+ void spaceOut()
+ {
+    for(int i = members.length - 1; i > members.length - 1 - numInShell; i--)
+    {
+      mag = shellNum * 20 + 20;
+      float angle = map(i - members.length + numInShell, 0, numInShell, 0, 2 * PI);
+      int tempAdjusts[] = {0,0};
+      tempAdjusts[0] = int(mag * cos(angle));
+      tempAdjusts[1] = int(mag * sin(angle));
+      this.members[i].adjusts = tempAdjusts;
+    }
+ }
+  
+ void squadDebug(char[] startTitle)
+ {
+   println(startTitle);
+   println("Shell Num: ", shellNum);
+   println("Num In Shell: ", numInShell);
+   println("Shell Max: ", shellMax);
+   println("\n\n");
+ }
   
 };
