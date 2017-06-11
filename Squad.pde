@@ -5,14 +5,27 @@ class Squad
   Drone members[];
 
   int shellMax = 8;
+  int oMax = 8;
   int numInShell = 0;
   int shellNum = 0;
   int mag;  
-  
+  int shellRadius = 20;
+
   Squad(TestDrone leader)
   {
     squadLeader = leader;
     members = null;
+    squads = (Squad[])append(squads, this);
+  }
+    
+  Squad(TestDrone leader, int shellMax, int shellRadius)
+  {
+    squadLeader = leader;
+    members = null;
+    this.shellMax = shellMax;
+    oMax = shellMax;
+    this.shellRadius = shellRadius;
+    squads = (Squad[])append(squads, this);
   }
   
   Squad(TestDrone leader, Drone members[])
@@ -20,6 +33,7 @@ class Squad
     squadLeader = leader;
     this.members = members;
     for(int i = 0; i < members.length; i++) {this.members[i].lead = squadLeader;}
+    squads = (Squad[])append(squads, this);
   }
 
   Squad(TestDrone leader, int numMembers)
@@ -28,19 +42,21 @@ class Squad
    members = new Drone[numMembers];
    for(int i = 0; i < numMembers; i++) 
    {
-       int tempAdjust[] = {10 + i * 10, 10 + i * 10}; 
-       Agent tempAgent = new Agent(squadLeader.droneBody.coordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants);
+       int tempAdjust[] = formationFunction(); 
+       int tempForces[] = new int[NUM_AXIS];
+       arrayCopy(squadLeader.droneBody.forces, tempForces);
+       Agent tempAgent = new Agent(squadLeader.droneBody.coordinates, tempForces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);
        members[i] = new Drone(tempAgent, tempAdjust);
        members[i].lead = squadLeader;
    }
-  
+   squads = (Squad[])append(squads, this);
   }
   
   int []formationFunction()
  {
 
         int adjusts[] = {0, 0};
-        mag = shellNum * 20 + 20;
+        mag = shellNum * shellRadius + shellRadius;
         float angle = map(numInShell, 0, shellMax, 0, 2 * PI);
         adjusts[0] = int(cos(angle) * mag);
         adjusts[1] = int(sin(angle) * mag);
@@ -49,10 +65,13 @@ class Squad
 
  }
  
- int []formationFunction(int numIn, int shellNum, int shellMax)
+ int []formationFunction(int numIn, int shellN, int shellM)
  {
    int adjusts[] = {0,0};
-   
+   mag = shellN * shellRadius + shellRadius;
+   float angle = map(numIn, 0, shellM, 0, 2 * PI);
+   adjusts[0] = int(cos(angle) * mag);
+   adjusts[1] = int(sin(angle) * mag);
    return adjusts;
  }
  
@@ -62,16 +81,16 @@ class Squad
     if(numInShell == -1 && shellNum > 1)
     {
       shellNum--;
-      shellMax = int(shellMax * (float(mag - 20) / float(mag)));
+      shellMax = int(shellMax * (float(mag - shellRadius) / float(mag)));
       numInShell = shellMax - 1;  
-      mag = shellNum * 20 + 20;
+      mag = shellNum * shellRadius + shellRadius;
     }
     else if(numInShell == -1 && shellNum == 1 )
     {
-     numInShell = 7;
      shellNum = 0;
-     shellMax = 8;
-     mag = 20;
+     shellMax = oMax;
+     numInShell = shellMax - 1;
+     mag = shellRadius;
     }
     
  }
@@ -89,14 +108,14 @@ class Squad
     Agent tempAgent; //will be the rigid body for our newDrone
     try
     {
-      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + (shellNum + 1) * 20 + 20, squadLeader.droneBody.coordinates[1] + (shellNum + 1) * 20};
-      tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants);  
+      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + (shellNum + 1) * shellRadius + shellRadius, squadLeader.droneBody.coordinates[1] + (shellNum + 1) * shellRadius};
+      tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);  
       newDrone = new Drone(tempAgent);
     }
     catch (NullPointerException e)
     {
-      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + 20, squadLeader.droneBody.coordinates[1]};
-      tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants);
+      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + shellRadius, squadLeader.droneBody.coordinates[1]};
+      tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);
       newDrone = new Drone(tempAgent);
     }
     return newDrone;
@@ -109,7 +128,7 @@ class Squad
     int tempAdjust[] = formationFunction();
     newDrone.adjusts = tempAdjust;
     spaceOut();
-    if(numInShell == shellMax) {numInShell = 0; shellMax = int(shellMax * (float(mag + 20) / mag)); shellNum++;}
+    if(numInShell == shellMax) {numInShell = 0; shellMax = int(shellMax * (float(mag + shellRadius) / mag)); shellNum++;}
     members[members.length - 1].lead = squadLeader;
   }
   
@@ -117,7 +136,7 @@ class Squad
   {
     if(members == null) {members = new Drone[1]; members[0] = newDrone;}
     else{members = (Drone[])append(members, newDrone);}
-    members[members.length - 1].lead = squadLeader;
+    members[members.length - 1].lead = this.squadLeader;
     members[members.length - 1].adjusts = adjusts;
   }
   
@@ -126,9 +145,10 @@ class Squad
     Drone tempDrone = null;
     if(members == null || members.length == 0) {return tempDrone;}
     tempDrone = members[members.length - 1];
-    members = (Drone[])shorten(members);
+    this.members = (Drone[])shorten(members);
     reverseFormationFunction();
     spaceOut();
+    tempDrone.lead = null;
     return tempDrone;  
   }
  
@@ -152,7 +172,7 @@ class Squad
  {
     for(int i = members.length - 1; i > members.length - 1 - numInShell; i--)
     {
-      mag = shellNum * 20 + 20;
+      mag = shellNum * shellRadius + shellRadius;
       float angle = map(i - members.length + numInShell, 0, numInShell, 0, 2 * PI);
       int tempAdjusts[] = {0,0};
       tempAdjusts[0] = int(mag * cos(angle));

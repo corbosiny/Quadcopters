@@ -6,7 +6,6 @@ class Drone
   int tolerance;       //the range it can be to its target coordinates where it will stop adjusting
   Drone lead = null;   //its squad leader, if this isn't null it will try and follow this leader
   
-  
   Drone(Agent newBody)
   {
    this.droneBody = newBody; 

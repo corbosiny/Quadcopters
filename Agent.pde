@@ -1,65 +1,67 @@
 class Agent    //Essentially a rigid body object of the Drone
 {
   
-  int maxOutputs[] = {150, 150, 150}; //limits speed the agents can go
-  static final int maxOutput = 400;
   static final int NUM_AXIS = 2;
+  int maxOutputs[] = new int[3]; //limits speed the agents can go
   int coordinates[];                  //current state of the agent
-  float forces[] = {0,0};             //holds the forces in each direction
-  float constants[];                  //PID constants
-  float integral = 0;                 //holds our running integral calculationg
+  float forces[] = new float[NUM_AXIS];             //holds the forces in each direction
+  float constants[] = new float[NUM_AXIS];                  //PID constants
+  float integral[] = new float[NUM_AXIS];                 //holds our running integral calculationg
   float lastErrors[] = {0, 0};        //holds the previous error term for derivatives
   boolean reset = false;              //lets us know when a new state is set so we can canel out derivative spikes
   int desiredState[] = {0, 0};        //the state the agent is trying to achieve
   float lastMeasurments[] = {0, 0};   //last time we took measurments at used for time based calculations like derivative and integral
   float clock;                        //holds change of time calculations converted into seconds
-  color Color;                        //color of the drone
+  color Color;                        //color of the dronew
   
   Agent(int coordinates[])
   {
-  
-    float tempForces[] = {0,0,0};                //holds the forces before we apply all of our PID outputs
-    float constants[] = {0,0,0};                 //See above declaration comments for more on all these guys
+                 
     this.coordinates = coordinates;               
-    this.forces = tempForces;
-    this.constants = constants;
-    this.desiredState[0] = this.coordinates[0] + (int) random(0, 50);
-    this.desiredState[1] = this.coordinates[1] + (int) random(0, 50);
+    this.desiredState[0] = this.coordinates[0];
+    this.desiredState[1] = this.coordinates[1];
     this.lastMeasurments[0] = millis();
     this.lastMeasurments[1] = millis();
     
     this.Color = color(random(0, 255), random(0, 255), random(0, 255));
     
+    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0; forces[i] = 0;}
+    for(int i = 0; i < 3; i++) {constants[i] = 0;}
   }
   
   Agent(int coordinates[], float forces[])
   {
-    float constants[] = {0,0,0};
     this.coordinates = coordinates;
     this.forces = forces;
-    this.constants = constants;
-    this.desiredState[0] = this.coordinates[0] + (int) random(0, 50);
-    this.desiredState[1] = this.coordinates[1] + (int) random(0, 50);
+    this.desiredState[0] = this.coordinates[0];
+    this.desiredState[1] = this.coordinates[1];
     this.lastMeasurments[0] = millis();
     this.lastMeasurments[1] = millis();
     
     this.Color = color(random(0, 255), random(0, 255), random(0, 255));
+    
+    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
+    for(int i = 0; i < 3; i++) {constants[i] = 0;}
+    
   }
   
-  Agent(int coordinates[], float forces[], float constants[])
+  Agent(int coordinates[], float forces[], float constants[], int max[])
   {
     this.coordinates = coordinates;
     this.forces = forces;
     this.constants = constants;
-    this.desiredState[0] = this.coordinates[0] + 100;
-    this.desiredState[1] = this.coordinates[1] + 30;
+    this.desiredState[0] = this.coordinates[0];
+    this.desiredState[1] = this.coordinates[1];
     this.lastMeasurments[0] = millis();
     this.lastMeasurments[1] = millis();
-    
+    this.maxOutputs = max;
     this.Color = color(random(0,255), random(0,255), random(0,255));
+    
+    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
+    
   }
   
-  Agent(int coordinates[], float forces[], float constants[], color Color)
+  Agent(int coordinates[], float forces[], float constants[], int max[], color Color)
   {
     
     this.coordinates = coordinates;
@@ -69,8 +71,10 @@ class Agent    //Essentially a rigid body object of the Drone
     this.desiredState[1] = this.coordinates[1] + (int) random(0, 50);
     this.lastMeasurments[0] = millis();
     this.lastMeasurments[1] = millis();
-    
+    this.maxOutputs = max;
     this.Color = Color;
+    
+    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
     
   }
   
@@ -84,25 +88,27 @@ class Agent    //Essentially a rigid body object of the Drone
        if(this.reset == true) {lastErrors[axis] = error; this.reset = false;}  //checks if a new sate was set so we are resetting the reset to avoid falsely perceived error
         
        float proportional = this.constants[0] * error;
-       if(proportional > this.maxOutputs[0]) {proportional = this.maxOutputs[0];}    //regulating max output in both positive and negative cases
-       else if(abs(proportional) > this.maxOutputs[0]) {proportional = this.maxOutputs[0] * -1;}
        
-       this.integral += this.constants[1] * error * clock;
-       if(this.integral > this.maxOutputs[1]) {this.integral = this.maxOutputs[1];} //regulating max output in both positive and negative cases
-       else if(abs(this.integral) > this.maxOutputs[1]) {this.integral = this.maxOutputs[1] * -1;}
+       this.integral[axis] += this.constants[1] * error * clock;
        
        float derivative = this.constants[2] * (error - lastErrors[axis]) / clock;
-       if(derivative > this.maxOutputs[2]) {derivative = this.maxOutputs[2];} //regulating max output in both positive and negative cases
-       else if(abs(derivative) > this.maxOutputs[2]) {derivative = this.maxOutputs[2] * -1;}
        
        this.lastErrors[axis] = error;      //resets our "last" terms to the current error to prep for the next frame
        this.lastMeasurments[axis] = millis();
        
-       float offset = this.integral + proportional + derivative;  //adding our terms for total output
+       if(this.maxOutputs != null)
+       {
+         if(proportional > this.maxOutputs[0]) {proportional = this.maxOutputs[0];}    //regulating max output in both positive and negative cases
+         else if(abs(proportional) > this.maxOutputs[0]) {proportional = this.maxOutputs[0] * -1;}
+         
+         if(this.integral[axis] > this.maxOutputs[1]) {this.integral[axis] = this.maxOutputs[1];} //regulating max output in both positive and negative cases
+         else if(abs(this.integral[axis]) > this.maxOutputs[1]) {this.integral[axis] = this.maxOutputs[1] * -1;}
+         
+         if(derivative > this.maxOutputs[2]) {derivative = this.maxOutputs[2];} //regulating max output in both positive and negative cases
+         else if(abs(derivative) > this.maxOutputs[2]) {derivative = this.maxOutputs[2] * -1;}
+       }
        
-       if(offset > maxOutput) {offset = maxOutput;} //putting a limiter on our maximum total adjustment
-       else if(abs(offset) > maxOutput) {offset = maxOutput * -1;}
-       
+       float offset = this.integral[axis] + proportional + derivative;  //adding our terms for total output
        return offset;
   
   }
