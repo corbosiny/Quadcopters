@@ -43,7 +43,7 @@ class Squad
    for(int i = 0; i < numMembers; i++) 
    {
        int tempAdjust[] = formationFunction(); 
-       int tempForces[] = new int[NUM_AXIS];
+       float tempForces[] = new float[NUM_AXIS];
        arrayCopy(squadLeader.droneBody.forces, tempForces);
        Agent tempAgent = new Agent(squadLeader.droneBody.coordinates, tempForces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);
        members[i] = new Drone(tempAgent, tempAdjust);
@@ -108,7 +108,7 @@ class Squad
     Agent tempAgent; //will be the rigid body for our newDrone
     try
     {
-      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + (shellNum + 1) * shellRadius + shellRadius, squadLeader.droneBody.coordinates[1] + (shellNum + 1) * shellRadius};
+      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + (shellNum + 2) * shellRadius + shellRadius, squadLeader.droneBody.coordinates[1] + (shellNum + 2) * shellRadius};
       tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);  
       newDrone = new Drone(tempAgent);
     }

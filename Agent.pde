@@ -27,6 +27,7 @@ class Agent    //Essentially a rigid body object of the Drone
     
     for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0; forces[i] = 0;}
     for(int i = 0; i < 3; i++) {constants[i] = 0;}
+    agents = (Agent[])append(agents, this);
   }
   
   Agent(int coordinates[], float forces[])
@@ -42,7 +43,7 @@ class Agent    //Essentially a rigid body object of the Drone
     
     for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
     for(int i = 0; i < 3; i++) {constants[i] = 0;}
-    
+    agents = (Agent[])append(agents, this);
   }
   
   Agent(int coordinates[], float forces[], float constants[], int max[])
@@ -58,7 +59,7 @@ class Agent    //Essentially a rigid body object of the Drone
     this.Color = color(random(0,255), random(0,255), random(0,255));
     
     for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
-    
+    agents = (Agent[])append(agents, this);
   }
   
   Agent(int coordinates[], float forces[], float constants[], int max[], color Color)
@@ -75,7 +76,7 @@ class Agent    //Essentially a rigid body object of the Drone
     this.Color = Color;
     
     for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
-    
+    agents = (Agent[])append(agents, this);
   }
   
   float calcError(int num) {return this.desiredState[num] - this.coordinates[num];}  //calculates the error on one axis from its desired state to its current state
@@ -124,9 +125,20 @@ class Agent    //Essentially a rigid body object of the Drone
           float PIDoutput = calcPIDAdjust(i);
           float finalForce = (this.forces[i]); //calculating the force acting on the agent
          
-          float output = (PIDoutput + finalForce) * this.clock; //final state change is the sum of the force and the PID outputs
+          float output = (PIDoutput + finalForce) * this.clock; //final state change is the sum of the force and the PID outputs 
+          
+          for(int j = 0; j < agents.length; j++)
+          {
+           if(agents[j] == this) {continue;}
+           output += obstacleAvoidance(i, agents[j]) * this.clock;
+          }
+          
+          if(abs(output) > (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * this.clock) {output = (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * this.clock * (output / abs(output));}
           this.coordinates[i] += output; //adding that to our state
+      
       }
+    
+      
     
     fill(this.Color); //drawing our new ellipse
     ellipse(this.coordinates[0], this.coordinates[1], 10, 10);
@@ -136,6 +148,19 @@ class Agent    //Essentially a rigid body object of the Drone
  
   float calcDistance(int x, int y) //returns distance between two points
   {return sqrt((x - coordinates[0])^2 + (y - coordinates[1])^2);}
+ 
   
+   float obstacleAvoidance(int axis, Agent agent2)
+   {
+     float difference = this.coordinates[axis] - agent2.coordinates[axis];
+     for(int i = 0; i < NUM_AXIS; i++) {if(i == axis) {continue;} if(abs(this.coordinates[i] - agent2.coordinates[i]) > minDistance) {return 0;}}
+     
+     if(abs(difference) > maxDistance) {return 0;}
+     //this.integral[axis] -= this.clock * this.constants[1] * difference;
+     float totalForce = abs(this.constants[0] * calcError(axis) + this.integral[axis] + ((calcError(axis) - lastErrors[axis]) / this.clock) * this.constants[2]);
+     difference = map(abs(difference), maxDistance, minDistance, 0, totalForce) * (difference / abs(difference));
+     if(abs(difference) > totalForce) {difference = totalForce * (difference / abs(difference));}
+     return difference;
+   } 
   
 }

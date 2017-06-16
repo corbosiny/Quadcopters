@@ -16,14 +16,14 @@ class Drone
   {
     this.droneBody = newBody;
     this.adjusts = adjusts;
-    this.tolerance = 0;  
+    this.tolerance = 0;
   }
   
   Drone(Agent newBody, int adjusts[] , int tolerance) 
   {
     this.droneBody = newBody;
     this.adjusts = adjusts;
-    this.tolerance = tolerance;  
+    this.tolerance = tolerance;
   }
   
    

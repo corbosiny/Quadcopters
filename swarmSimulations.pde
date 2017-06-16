@@ -4,9 +4,14 @@ int baseCoordinates2[] = {350, 350};
 float forces[] = {0,0,0};
 float forces2[] = {0,0,0};
 float constants[] = {5,5,.3};
-int maxOutputs[] = {250, 450, 150};
+int maxOutputs[] = {150, 250, 100};
+
+int maxDistance = 25;
+int minDistance = 8;
 
 int NUM_AXIS = 2;
+
+Agent agents[] = new Agent[0];
 
 TestDrone leadDrone = new TestDrone(new Agent(baseCoordinates, forces, constants, maxOutputs, color(0,0,255)));
 TestDrone leadDrone2 = new TestDrone(new Agent(baseCoordinates2, forces2, constants, maxOutputs, color(255,0,0)));
@@ -24,7 +29,6 @@ void setup()
 
   testSquad = new Squad(leadDrone, 10, 30);
   testSquad2 = new Squad(leadDrone2, 8, 20);
-
 }
 
 //redraws the squads every turn
@@ -38,7 +42,7 @@ void draw()
         {
             for(int j = 0; j < squads[i].members.length; j++)
             {
-              squads[i].members[j].droneBody.forces = generateForces(10);
+              squads[i].members[j].droneBody.forces = generateForces(20);
             }
         } 
      }

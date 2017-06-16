@@ -82,6 +82,14 @@ class Agent
           float finalForce = this.forces[i]; //calculating the force acting on the agent
          
           float output = (PIDoutput + finalForce) * this.clock; //final state change is the sum of the force and the PID outputs
+          
+          for(int j = 0; j < agents.length; j++)
+          {
+           if(agents[j] == this) {continue;}
+           output += obstacleAvoidance(i, agents[j]) * this.clock;
+          }
+          
+          if(abs(output) > (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * this.clock) {output = (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * this.clock * (output / abs(output));}
           this.coordinates[i] += output; //adding that to our state
       }
     
@@ -90,10 +98,17 @@ class Agent
     
   }
  
- float obstacleAvoidance(int axis, Agent agent1, Agent agent2)
+ 
+ float obstacleAvoidance(int axis, Agent agent2)
  {
-   float difference = agent1.coordinates[0] - agent2.coordinates[0];
-   difference = map(difference, maxDistance, minDistance, 0, (maxOutputs[0] + maxOutputs[1]));
+   float difference = this.coordinates[axis] - agent2.coordinates[axis];
+   for(int i = 0; i < NUM_AXIS; i++) {if(i == axis) {continue;} if(abs(this.coordinates[i] - agent2.coordinates[i]) > minDistance) {return 0;}}
+     
+   if(abs(difference) > maxDistance) {return 0;}
+   //this.integral[axis] -= this.clock * this.constants[1] * difference;
+   float totalForce = abs(constants[0] * calcError(axis) + this.integral[axis] + ((calcError(axis) - lastErrors[axis]) / this.clock) * constants[2]);
+   difference = map(abs(difference), maxDistance, minDistance, 0, totalForce) * (difference / abs(difference));
+   if(abs(difference) > totalForce) {difference = totalForce * (difference / abs(difference));}
    return difference;
  }
 
