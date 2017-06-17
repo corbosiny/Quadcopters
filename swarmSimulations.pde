@@ -7,7 +7,7 @@ float constants[] = {5,5,.3};
 int maxOutputs[] = {150, 250, 100};
 
 int maxDistance = 25;
-int minDistance = 8;
+int minDistance = 10;
 
 int NUM_AXIS = 2;
 
@@ -24,7 +24,8 @@ Squad squads[] = new Squad[0];
 void setup()
 {
   surface.setTitle("Swarm Simulation");
-  fullScreen();
+  //fullScreen();
+  size(750, 400);
   surface.setResizable(true);
 
   testSquad = new Squad(leadDrone, 10, 30);

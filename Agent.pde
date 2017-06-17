@@ -157,10 +157,17 @@ class Agent    //Essentially a rigid body object of the Drone
      
      if(abs(difference) > maxDistance) {return 0;}
      //this.integral[axis] -= this.clock * this.constants[1] * difference;
-     float totalForce = abs(this.constants[0] * calcError(axis) + this.integral[axis] + ((calcError(axis) - lastErrors[axis]) / this.clock) * this.constants[2]);
-     difference = map(abs(difference), maxDistance, minDistance, 0, totalForce) * (difference / abs(difference));
-     if(abs(difference) > totalForce) {difference = totalForce * (difference / abs(difference));}
-     return difference;
+     float totalForce = maxOutputs[0] + maxOutputs[1] - maxOutputs[2];
+     float mapped = map(abs(difference), maxDistance, minDistance, 0, totalForce);
+     if(abs(difference) > 0) {mapped *= (difference / abs(difference));}
+
+     if(Float.isNaN(mapped) || abs(mapped) > totalForce) 
+     {
+       mapped = totalForce;
+       if(abs(difference) > 0) {mapped *= (difference / abs(difference));}
+       else if(abs(calcError(axis))> 0) {mapped *= abs(calcError(axis)) / (calcError(axis));} 
+     }
+     return mapped;
    } 
   
 }
