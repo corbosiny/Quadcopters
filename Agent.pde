@@ -7,6 +7,7 @@ class Agent    //Essentially a rigid body object of the Drone
   float forces[] = new float[NUM_AXIS];             //holds the forces in each direction
   float constants[] = new float[NUM_AXIS];                  //PID constants
   float integral[] = new float[NUM_AXIS];                 //holds our running integral calculationg
+  float derivative = 0;
   float lastErrors[] = {0, 0};        //holds the previous error term for derivatives
   boolean reset = false;              //lets us know when a new state is set so we can canel out derivative spikes
   int desiredState[] = {0, 0};        //the state the agent is trying to achieve
@@ -92,7 +93,7 @@ class Agent    //Essentially a rigid body object of the Drone
        
        this.integral[axis] += this.constants[1] * error * clock;
        
-       float derivative = this.constants[2] * (error - lastErrors[axis]) / clock;
+       this.derivative = this.constants[2] * (error - lastErrors[axis]) / clock;
        
        this.lastErrors[axis] = error;      //resets our "last" terms to the current error to prep for the next frame
        this.lastMeasurments[axis] = millis();
@@ -105,8 +106,8 @@ class Agent    //Essentially a rigid body object of the Drone
          if(this.integral[axis] > this.maxOutputs[1]) {this.integral[axis] = this.maxOutputs[1];} //regulating max output in both positive and negative cases
          else if(abs(this.integral[axis]) > this.maxOutputs[1]) {this.integral[axis] = this.maxOutputs[1] * -1;}
          
-         if(derivative > this.maxOutputs[2]) {derivative = this.maxOutputs[2];} //regulating max output in both positive and negative cases
-         else if(abs(derivative) > this.maxOutputs[2]) {derivative = this.maxOutputs[2] * -1;}
+         if(this.derivative > this.maxOutputs[2]) {this.derivative = this.maxOutputs[2];} //regulating max output in both positive and negative cases
+         else if(abs(this.derivative) > this.maxOutputs[2]) {this.derivative = this.maxOutputs[2] * -1;}
        }
        
        float offset = this.integral[axis] + proportional + derivative;  //adding our terms for total output
@@ -157,8 +158,9 @@ class Agent    //Essentially a rigid body object of the Drone
      
      if(abs(difference) > maxDistance) {return 0;}
      //this.integral[axis] -= this.clock * this.constants[1] * difference;
+     float currentForce = calcError(axis) * this.constants[0] + this.integral[axis] + this.derivative;
      float totalForce = maxOutputs[0] + maxOutputs[1] - maxOutputs[2];
-     float mapped = map(abs(difference), maxDistance, minDistance, 0, totalForce);
+     float mapped = map(abs(difference), maxDistance, minDistance, 0, currentForce);
      if(abs(difference) > 0) {mapped *= (difference / abs(difference));}
 
      if(Float.isNaN(mapped) || abs(mapped) > totalForce) 
