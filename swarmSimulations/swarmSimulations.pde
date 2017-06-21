@@ -2,76 +2,139 @@ int baseCoordinates[] = {250, 250};
 int baseCoordinates2[] = {350, 350};
 
 float forces[] = {0,0,0};
-float constants[] = {5,5,.5};
+float forces2[] = {0,0,0};
+float constants[] = {5,5,.3};
+int maxOutputs[] = {150, 250, 100};
 
-TestDrone leadDrone = new TestDrone(new Agent(baseCoordinates, forces, constants, color(0,0,255)));
-TestDrone leadDrone2 = new TestDrone(new Agent(baseCoordinates2, forces, constants, color(255,0,0)));
+int maxDistance = 25;
+int minDistance = 10;
 
-Drone[] squadDrones = new Drone[4];
+int NUM_AXIS = 2;
+
+Agent agents[] = new Agent[0];
+
+TestDrone leadDrone = new TestDrone(new Agent(baseCoordinates, forces, constants, maxOutputs, color(0,0,255)));
+TestDrone leadDrone2 = new TestDrone(new Agent(baseCoordinates2, forces2, constants, maxOutputs, color(255,0,0)));
+
 Squad testSquad;
 Squad testSquad2;
 
+Squad squads[] = new Squad[0];
+
 void setup()
 {
-  size(500, 500);
   surface.setTitle("Swarm Simulation");
-  for(int i = 0; i < 4; i++) 
-  {
-    int tempCoordinates[] = {50 * i, 50};
-    int tempAdjust[] = {10+10 * i, 10+10 * i};
-    squadDrones[i] = new Drone(new Agent(tempCoordinates, forces, constants), tempAdjust);
-  }
+  //fullScreen();
+  size(750, 400);
+  surface.setResizable(true);
 
-  testSquad = new Squad(leadDrone, squadDrones);
-  //testSquad.createSquadMate();
-  testSquad2 = new Squad(leadDrone2);
+  testSquad = new Squad(leadDrone, 10, 30);
+  testSquad2 = new Squad(leadDrone2, 8, 20);
 }
 
+//redraws the squads every turn
 void draw()
 {
      background(0);
-     //leadDrone.update();
-     testSquad.update();
-     //leadDrone2.update();
-     testSquad2.update();
+     for(int i = 0; i < squads.length; i++)
+     {
+        squads[i].update();
+        if(squads[i].members != null)
+        {
+            for(int j = 0; j < squads[i].members.length; j++)
+            {
+              squads[i].members[j].droneBody.forces = generateForces(20);
+            }
+        } 
+     }
+     
 }
 
+
+//just allows us to tell our squads where to move
 void mouseClicked()
 {
  if(mouseButton == LEFT) {testSquad.move(mouseX, mouseY);} 
  if(mouseButton == RIGHT) {leadDrone2.move(mouseX, mouseY);}
 } 
 
+
+
+//key controls for the user to edit the world
 void keyPressed()
 {
+  if(key == 'z')                                                 //transfers a drone from squad 1 to squad 2 if any
+  {testSquad.transferDrone(testSquad2);}
+  else if(key == 'x')                                            //transfers a drone from squad 2 to squad 1 if any
+  {testSquad2.transferDrone(testSquad);}
  
-  if(key == 'z') 
-  {
-     if(testSquad.members != null && testSquad.members.length != 0)
-     {
-       Drone tempDrone = testSquad.members[testSquad.members.length - 1];
-       testSquad.members = (Drone[])shorten(testSquad.members);
-       testSquad2.addSquadMate(tempDrone);
-     }  
-  }
-  else if(key == 'x')
-  {
-     if(testSquad2.members != null && testSquad2.members.length != 0)
-     {
-       Drone tempDrone = testSquad2.members[testSquad2.members.length - 1];
-       testSquad2.members = (Drone[])shorten(testSquad2.members);
-       testSquad.addSquadMate(tempDrone);
-     } 
- }
- 
- else if(key == 'c')
+ else if(key == 'c')                                             //spawns a new drone in squad 1
+ {testSquad.addSquadMate(testSquad.createSquadMate());}
+ else if(key == 'v')                                             //spawns a new drone in squad 2
+ {testSquad2.addSquadMate(testSquad2.createSquadMate());}
+
+ else if(key == 'w') 
  {
-    testSquad.createSquadMate();
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[1] -= 10;}}
+   testSquad.squadLeader.droneBody.forces[1] -= 10;
  }
- else if(key == 'v')
+ else if(key == 's') 
  {
-    testSquad2.createSquadMate();
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[1] += 10;}}
+   testSquad.squadLeader.droneBody.forces[1] += 10;
+ }
+ else if(key == 'a') 
+ {
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[0] -= 10;}}
+   testSquad.squadLeader.droneBody.forces[0] -= 10;
+ }
+ else if(key == 'd') 
+ {
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[0] += 10;}}
+   testSquad.squadLeader.droneBody.forces[0] += 10;
  }
  
+
+}
+
+float []generateForces(int max)
+{
+ 
+ float []forces = new float[NUM_AXIS];
+ for(int i = 0; i < NUM_AXIS; i++)
+ {
+   forces[i] = int(random(-max, max));
+ }
+ return forces;
   
+}
+
+float []generateForces(int max[])
+{
+  float []forces = new float[NUM_AXIS];
+  for(int i = 0; i < NUM_AXIS; i++)
+  {
+   forces[i] = int(random(-max[i], max[i])); 
+  }
+  return forces;  
+}
+
+float []generateTrigForces(int mag)
+{
+  float []forces = new float[NUM_AXIS];
+  for(int i = 0; i < NUM_AXIS; i++)
+  {
+    forces[i] = int(mag * cos(millis()));
+  }
+  return forces;
+}
+
+int []generateTrigForces(int mag[])
+{
+ int []forces = new int[NUM_AXIS]; 
+ for(int i = 0; i < NUM_AXIS; i++)
+ {
+   forces[i] = int(mag[i] * cos(millis())); 
+ }
+ return forces;
 }
