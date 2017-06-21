@@ -37,17 +37,17 @@
 #include <BMP085.h>
 #include "HMC5883L.h"
 
-float gyroX, gyroY, gyroZ;                                                 //holds the rate of change the quadcopter's angles detected by the MPU6050
-float accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
+int gyroX, gyroY, gyroZ;                                                 //holds the rate of change the quadcopter's angles detected by the MPU6050
+long int accX, accY, accZ, accMag;                                       //hold the acceleration values of their respective axsis and the magnitude
 float anglePitch, angleRoll;                                             //first the gyro calculated angles, then the IMU pitch and roll values
-float angleRollAcc = 0, anglePitchAcc = 0;                                       //calculated rotaion angles based off accelerometer
-float gyroXoffset = 0, gyroYoffset = 0, gyroZoffset = 0;                               //used for calibration of the initial gyro reading offsets
+float angleRollAcc, anglePitchAcc;                                       //calculated rotaion angles based off accelerometer
+long gyroXoffset, gyroYoffset, gyroZoffset;                               //used for calibration of the initial gyro reading offsets
 boolean setGyroAngles = 0;                                               //used to trigger initial angle readings, only is used on startup
 int temperature;                                                         //self explanatory bruh
 
 int MPUaddr = 0x68;                                                      //MPU address on the i2c bus, DO NOT CHANGE I WILL FIND YOU 
 float accPitchOffset = 0, accRollOffset = 0;                             //offsets for the accelerometer values, laying it flat is the best way to calculate these
-float gyroContribution = .96;                                          //used for the complimentary filter, how much weight the gyro's measurments are given vs the accelerometer
+float gyroContribution = .9996;                                          //used for the complimentary filter, how much weight the gyro's measurments are given vs the accelerometer
 
 BMP085 bmp;                                                              //The barometer object
 int pressure;                                                            //holds the air pressure readings
@@ -57,6 +57,7 @@ long int seaLevelPress;                                                  //holds
 HMC5883L mag;                                                         //The magentometer object
 int16_t mx, my, mz;                                                      //holds magentic field values on each axis
 float heading;                                                           //will store your angle in relation to the north pole, 0 = North
+
 void setup() 
 {
 
@@ -75,16 +76,13 @@ void setup()
 
   digitalWrite(13, HIGH);                                                
   
-  for (int i = 0; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
+  for (int i; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
   {                                           
       
       readMPU6050data();                                              //Read the raw acc and gyro data from the MPU6050
       gyroXoffset += gyroX;                                              //keep running total of 2000 readings
       gyroYoffset += gyroY;                                              
-      gyroZoffset += gyroZ;
-      accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));                                              //Calculate the total accelerometer vector magnitude
-      anglePitchAcc += asin((float)accY/accMag)* 57.296;                                       //Calculate the pitch angle
-      angleRollAcc += asin((float)accX/accMag)* -57.296; 
+      gyroZoffset += gyroZ;                                              
       delay(3);                                                          
   
   }
@@ -93,10 +91,7 @@ void setup()
   gyroXoffset /= 2000;                                                  //Divide the gyro variables by 2000 to get the avarage offset
   gyroYoffset /= 2000;                                                  
   gyroZoffset /= 2000;                                                  
-  accPitchOffset anglePitchAcc / 2000;
-  accRollOffset = angleRollAcc / 2000;
-  anglePitchAcc = 0;
-  angleRollAcc = 0;
+
   digitalWrite(13, LOW);                                               
                                                                          
 }
@@ -105,8 +100,8 @@ void loop()
 {
 
     readMPU6050data();                                                                      //functions to read all the data we need from the IMU
-    readBMPdata();                                                                          //each function deals with a respective module of the IMU
-    readHMCdata();
+    //readBMPdata();                                                                          //each function deals with a respective module of the IMU
+    //readHMCdata();
   
     gyroX -= gyroXoffset;                                                                    //Subtracting the calibration offset from the raw gyro values
     gyroY -= gyroYoffset;                                                
@@ -152,20 +147,22 @@ void loop()
     }
 
     temperature = temperature / 340.00 + 36.53;                                               //from data sheet, converts temp reading to celcius
+    
     Serial.print("Pitch: ");                                                                  //For Debugging Purposes
     Serial.println(anglePitch);
     Serial.print("Roll: ");
     Serial.println(angleRoll);
-    Serial.print("Temperature: ");
-    Serial.println(temperature);
-    Serial.print("Air Pressure: ");
-    Serial.println(pressure);
-    Serial.print("Altitude: ");
-    Serial.println(altitude);
-    Serial.print("Heading(0 = North): ");
-    Serial.println(heading);
-    Serial.println("\n\n");
-    lastPrint = millis();
+//    Serial.print("Temperature: ");
+//    Serial.println(temperature);
+//    Serial.print("Air Pressure: ");
+//    Serial.println(pressure);
+//    Serial.print("Altitude: ");
+//    Serial.println(altitude);
+//    Serial.print("Heading(0 = North): ");
+//    Serial.println(heading);
+//    Serial.println("\n\n");
+
+  delay(1000);
   
 }
 
