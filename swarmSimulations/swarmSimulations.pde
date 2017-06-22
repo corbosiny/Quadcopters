@@ -1,12 +1,12 @@
-int baseCoordinates[] = {250, 250};
-int baseCoordinates2[] = {350, 350};
+int baseCoordinates[] = {250, 250};                                                                  //starting coordinates for the first squad leader
+int baseCoordinates2[] = {350, 350};                                                                 //starting coordinates for the second squad leader
 
-float forces[] = {0,0,0};
-float forces2[] = {0,0,0};
-float constants[] = {5,5,.3};
+float forces[] = {0,0,0};                                                                            //starting forces on the first squad leader
+float forces2[] = {0,0,0};                                                                           //starting forces on the second squad leader
+float constants[] = {5,5,.3};                                                                        //PID constants
 int maxOutputs[] = {150, 250, 100};
 
-int maxDistance = 25;
+int maxDistance = 30;
 int minDistance = 10;
 
 int NUM_AXIS = 2;
@@ -28,8 +28,8 @@ void setup()
   size(750, 400);
   surface.setResizable(true);
 
-  testSquad = new Squad(leadDrone, 10, 30);
-  testSquad2 = new Squad(leadDrone2, 8, 20);
+  testSquad = new Squad(leadDrone, 8, maxDistance + 5);
+  testSquad2 = new Squad(leadDrone2, 8, maxDistance + 5);
 }
 
 //redraws the squads every turn

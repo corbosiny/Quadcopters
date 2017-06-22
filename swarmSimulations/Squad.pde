@@ -31,7 +31,7 @@ class Squad
   Squad(TestDrone leader, Drone members[])
   {
     squadLeader = leader;
-    this.members = members;
+    arrayCopy(members, this.members);
     for(int i = 0; i < members.length; i++) {this.members[i].lead = squadLeader;}
     squads = (Squad[])append(squads, this);
   }
@@ -145,7 +145,7 @@ class Squad
     Drone tempDrone = null;
     if(members == null || members.length == 0) {return tempDrone;}
     tempDrone = members[members.length - 1];
-    this.members = (Drone[])shorten(members);
+    members = (Drone[])shorten(members);
     reverseFormationFunction();
     spaceOut();
     tempDrone.lead = null;
@@ -154,8 +154,8 @@ class Squad
  
  int transferDrone(Squad squad2) //transfers a drone from squad1 to squad 2
  {
-  if(this.members == null || this.members.length == 0) {return 0;}
-  Drone tempDrone = this.removeSquadMate();
+  if(members == null || members.length == 0) {return 0;}
+  Drone tempDrone = removeSquadMate();
   squad2.addSquadMate(tempDrone);
   return 1;
  }
@@ -177,7 +177,7 @@ class Squad
       int tempAdjusts[] = {0,0};
       tempAdjusts[0] = int(mag * cos(angle));
       tempAdjusts[1] = int(mag * sin(angle));
-      this.members[i].adjusts = tempAdjusts;
+      members[i].adjusts = tempAdjusts;
     }
  }
   

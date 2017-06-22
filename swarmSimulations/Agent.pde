@@ -3,9 +3,9 @@ class Agent    //Essentially a rigid body object of the Drone
   
   static final int NUM_AXIS = 2;
   int maxOutputs[] = new int[3]; //limits speed the agents can go
-  int coordinates[];                  //current state of the agent
-  float forces[] = new float[NUM_AXIS];             //holds the forces in each direction
-  float constants[] = new float[NUM_AXIS];                  //PID constants
+  int coordinates[] = new int[3];                  //current state of the agent
+  float forces[] = new float[3];             //holds the forces in each direction
+  float constants[] = new float[3];                  //PID constants
   float integral[] = new float[NUM_AXIS];                 //holds our running integral calculationg
   float derivative = 0;
   float lastErrors[] = {0, 0};        //holds the previous error term for derivatives
@@ -18,99 +18,87 @@ class Agent    //Essentially a rigid body object of the Drone
   Agent(int coordinates[])
   {
                  
-    this.coordinates = coordinates;               
-    this.desiredState[0] = this.coordinates[0];
-    this.desiredState[1] = this.coordinates[1];
-    this.lastMeasurments[0] = millis();
-    this.lastMeasurments[1] = millis();
+    arrayCopy(coordinates, this.coordinates);    
+    arrayCopy(coordinates, this.desiredState);
     
     this.Color = color(random(0, 255), random(0, 255), random(0, 255));
     
-    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0; forces[i] = 0;}
+    for(int i = 0; i < NUM_AXIS; i++) {lastMeasurments[i] = millis(); integral[i] = 0; forces[i] = 0;}
     for(int i = 0; i < 3; i++) {constants[i] = 0;}
     agents = (Agent[])append(agents, this);
   }
   
   Agent(int coordinates[], float forces[])
   {
-    this.coordinates = coordinates;
-    this.forces = forces;
-    this.desiredState[0] = this.coordinates[0];
-    this.desiredState[1] = this.coordinates[1];
-    this.lastMeasurments[0] = millis();
-    this.lastMeasurments[1] = millis();
+    arrayCopy(coordinates, this.coordinates); 
+    arrayCopy(forces, this.forces);
+    arrayCopy(coordinates, this.desiredState);
     
     this.Color = color(random(0, 255), random(0, 255), random(0, 255));
     
-    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
+    for(int i = 0; i < NUM_AXIS; i++) {lastMeasurments[i] = millis(); integral[i] = 0;}
     for(int i = 0; i < 3; i++) {constants[i] = 0;}
     agents = (Agent[])append(agents, this);
   }
   
   Agent(int coordinates[], float forces[], float constants[], int max[])
   {
-    this.coordinates = coordinates;
-    this.forces = forces;
-    this.constants = constants;
-    this.desiredState[0] = this.coordinates[0];
-    this.desiredState[1] = this.coordinates[1];
-    this.lastMeasurments[0] = millis();
-    this.lastMeasurments[1] = millis();
-    this.maxOutputs = max;
+    arrayCopy(coordinates, this.coordinates);
+    arrayCopy(forces, this.forces);
+    arrayCopy(constants, this.constants);
+    arrayCopy(coordinates, this.desiredState);
+    arrayCopy(max, this.maxOutputs);
     this.Color = color(random(0,255), random(0,255), random(0,255));
     
-    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
+    for(int i = 0; i < NUM_AXIS; i++) {lastMeasurments[i] = millis(); integral[i] = 0;}
     agents = (Agent[])append(agents, this);
   }
   
   Agent(int coordinates[], float forces[], float constants[], int max[], color Color)
   {
     
-    this.coordinates = coordinates;
-    this.forces = forces;
-    this.constants = constants;
-    this.desiredState[0] = this.coordinates[0] + (int) random(0, 50);
-    this.desiredState[1] = this.coordinates[1] + (int) random(0, 50);
-    this.lastMeasurments[0] = millis();
-    this.lastMeasurments[1] = millis();
-    this.maxOutputs = max;
+    arrayCopy(coordinates, this.coordinates);
+    arrayCopy(forces, this.forces);
+    arrayCopy(constants, this.constants);
+    arrayCopy(coordinates, this.desiredState);
+    arrayCopy(max, this.maxOutputs);
     this.Color = Color;
     
-    for(int i = 0; i < NUM_AXIS; i++) {integral[i] = 0;}
+    for(int i = 0; i < NUM_AXIS; i++) {lastMeasurments[i] = millis(); integral[i] = 0;}
     agents = (Agent[])append(agents, this);
   }
   
-  float calcError(int num) {return this.desiredState[num] - this.coordinates[num];}  //calculates the error on one axis from its desired state to its current state
+  float calcError(int num) {return desiredState[num] - coordinates[num];}  //calculates the error on one axis from its desired state to its current state
   
   float calcPIDAdjust(int axis) //runs through PID equations to determine its output to reach the desired state
   {
     
-       this.clock = (millis() - this.lastMeasurments[axis]) / 1000;  //calculates change in time
-       float error = this.calcError(axis);                           //gets the error
-       if(this.reset == true) {lastErrors[axis] = error; this.reset = false;}  //checks if a new sate was set so we are resetting the reset to avoid falsely perceived error
+       clock = (millis() - lastMeasurments[axis]) / 1000;  //calculates change in time
+       float error = calcError(axis);                           //gets the error
+       if(reset == true) {lastErrors[axis] = error; reset = false;}  //checks if a new sate was set so we are resetting the reset to avoid falsely perceived error
         
-       float proportional = this.constants[0] * error;
+       float proportional = constants[0] * error;
        
-       this.integral[axis] += this.constants[1] * error * clock;
+       integral[axis] += constants[1] * error * clock;
        
-       this.derivative = this.constants[2] * (error - lastErrors[axis]) / clock;
+       derivative = constants[2] * (error - lastErrors[axis]) / clock;
        
-       this.lastErrors[axis] = error;      //resets our "last" terms to the current error to prep for the next frame
-       this.lastMeasurments[axis] = millis();
+       lastErrors[axis] = error;      //resets our "last" terms to the current error to prep for the next frame
+       lastMeasurments[axis] = millis();
        
-       if(this.maxOutputs != null)
+       if(maxOutputs != null)
        {
-         if(proportional > this.maxOutputs[0]) {proportional = this.maxOutputs[0];}    //regulating max output in both positive and negative cases
-         else if(abs(proportional) > this.maxOutputs[0]) {proportional = this.maxOutputs[0] * -1;}
+         if(proportional > maxOutputs[0]) {proportional = maxOutputs[0];}    //regulating max output in both positive and negative cases
+         else if(abs(proportional) > maxOutputs[0]) {proportional = maxOutputs[0] * -1;}
          
-         if(this.integral[axis] > this.maxOutputs[1]) {this.integral[axis] = this.maxOutputs[1];} //regulating max output in both positive and negative cases
-         else if(abs(this.integral[axis]) > this.maxOutputs[1]) {this.integral[axis] = this.maxOutputs[1] * -1;}
+         if(integral[axis] > maxOutputs[1]) {integral[axis] = maxOutputs[1];} //regulating max output in both positive and negative cases
+         else if(abs(integral[axis]) > maxOutputs[1]) {integral[axis] = maxOutputs[1] * -1;}
          
-         if(this.derivative > this.maxOutputs[2]) {this.derivative = this.maxOutputs[2];} //regulating max output in both positive and negative cases
-         else if(abs(this.derivative) > this.maxOutputs[2]) {this.derivative = this.maxOutputs[2] * -1;}
+         if(derivative > maxOutputs[2]) {derivative = maxOutputs[2];} //regulating max output in both positive and negative cases
+         else if(abs(derivative) > maxOutputs[2]) {derivative = maxOutputs[2] * -1;}
        }
        
-       float offset = this.integral[axis] + proportional + derivative;  //adding our terms for total output
+       float offset = integral[axis] + proportional + derivative;  //adding our terms for total output
        return offset;
   
   }
@@ -124,25 +112,25 @@ class Agent    //Essentially a rigid body object of the Drone
       for(int i = 0; i < NUM_AXIS; i++)  //going through each axis
       {
           float PIDoutput = calcPIDAdjust(i);
-          float finalForce = (this.forces[i]); //calculating the force acting on the agent
+          float finalForce = (forces[i]); //calculating the force acting on the agent
          
-          float output = (PIDoutput + finalForce) * this.clock; //final state change is the sum of the force and the PID outputs 
+          float output = (PIDoutput + finalForce) * clock; //final state change is the sum of the force and the PID outputs 
           
           for(int j = 0; j < agents.length; j++)
           {
            if(agents[j] == this) {continue;}
-           output += obstacleAvoidance(i, agents[j]) * this.clock;
+           output += obstacleAvoidance(i, agents[j]) * clock;
           }
           
-          if(abs(output) > (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * this.clock) {output = (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * this.clock * (output / abs(output));}
-          this.coordinates[i] += output; //adding that to our state
+          if(abs(output) > (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * clock) {output = (maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) * clock * (output / abs(output));}
+          coordinates[i] += output; //adding that to our state
       
       }
     
       
     
-    fill(this.Color); //drawing our new ellipse
-    ellipse(this.coordinates[0], this.coordinates[1], 10, 10);
+    fill(Color); //drawing our new ellipse
+    ellipse(coordinates[0], coordinates[1], 10, 10);
     
   }
  
@@ -153,14 +141,14 @@ class Agent    //Essentially a rigid body object of the Drone
   
    float obstacleAvoidance(int axis, Agent agent2)
    {
-     float difference = this.coordinates[axis] - agent2.coordinates[axis];
-     for(int i = 0; i < NUM_AXIS; i++) {if(i == axis) {continue;} if(abs(this.coordinates[i] - agent2.coordinates[i]) > minDistance) {return 0;}}
+     float difference = coordinates[axis] - agent2.coordinates[axis];
+     for(int i = 0; i < NUM_AXIS; i++) {if(i == axis) {continue;} if(abs(coordinates[i] - agent2.coordinates[i]) > minDistance) {return 0;}}
      
      if(abs(difference) > maxDistance) {return 0;}
-     //this.integral[axis] -= this.clock * this.constants[1] * difference;
-     float currentForce = calcError(axis) * this.constants[0] + this.integral[axis] + this.derivative;
+     //integral[axis] -= clock * this.constants[1] * difference;
+     float currentForce = calcError(axis) * constants[0] + integral[axis] + derivative;
      float totalForce = maxOutputs[0] + maxOutputs[1] - maxOutputs[2];
-     float mapped = map(abs(difference), maxDistance, minDistance, 0, currentForce);
+     float mapped = map(abs(difference), maxDistance, minDistance, 0, currentForce * 2);
      if(abs(difference) > 0) {mapped *= (difference / abs(difference));}
 
      if(Float.isNaN(mapped) || abs(mapped) > totalForce) 
