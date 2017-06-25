@@ -1,101 +1,79 @@
 class Squad
 {
   
-  TestDrone squadLeader;
-  Drone members[];
+  static final int NUM_AXIS = 2;                                            //number of dimensions in the simulation
+  
+  Drone squadLeader;                                                        //the leader everyone will follow
+  Drone members[];                                                          //keeps track of all squad members
 
-  int shellMax = 8;
-  int oMax = 8;
+  //these will not be in here in the drone code,
+  //java does not support static variables in methods so,
+  //I have them declared as class members, but in the drone they will belong
+  //only to the specific formation function
+  int oMax = 6;
+  int shellMax = oMax;
   int numInShell = 0;
   int shellNum = 0;
-  int mag;  
-  int shellRadius = 20;
+  int shellRadius = maxDistance + 5;
 
-  Squad(TestDrone leader)
+  Squad(Drone squadLeader)                                                          //all a squad needs is a leader to be formed
   {
-    squadLeader = leader;
+    this.squadLeader = squadLeader;
+    squadLeader.isLeader = true;
     members = null;
-    squads = (Squad[])append(squads, this);
-  }
-    
-  Squad(TestDrone leader, int shellMax, int shellRadius)
-  {
-    squadLeader = leader;
-    members = null;
-    this.shellMax = shellMax;
-    oMax = shellMax;
-    this.shellRadius = shellRadius;
     squads = (Squad[])append(squads, this);
   }
   
-  Squad(TestDrone leader, Drone members[])
+  Squad(Drone squadLeader, Drone members[])                                        //a squad can be formed with a list of members as well
   {
-    squadLeader = leader;
+    this.squadLeader = squadLeader;
+    squadLeader.isLeader = true;
     arrayCopy(members, this.members);
-    for(int i = 0; i < members.length; i++) {this.members[i].lead = squadLeader;}
+    for(int i = 0; i < members.length; i++) {this.members[i].squad = this;}
     squads = (Squad[])append(squads, this);
   }
 
-  Squad(TestDrone leader, int numMembers)
+  Squad(Drone squadLeader, int numMembers)                                        //instead of members pre-made, you can specify a number to make and new drones will be created
   {
-   squadLeader = leader;
+   this.squadLeader = squadLeader;
+   squadLeader.isLeader = true;
    members = new Drone[numMembers];
    for(int i = 0; i < numMembers; i++) 
    {
        int tempAdjust[] = formationFunction(); 
-       float tempForces[] = new float[NUM_AXIS];
-       arrayCopy(squadLeader.droneBody.forces, tempForces);
-       Agent tempAgent = new Agent(squadLeader.droneBody.coordinates, tempForces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);
+       Agent tempAgent = new Agent(squadLeader.droneBody.coordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);
        members[i] = new Drone(tempAgent, tempAdjust);
-       members[i].lead = squadLeader;
+       members[i].squad = this;
    }
    squads = (Squad[])append(squads, this);
   }
   
-  int []formationFunction()
+ //for all formation functions the flight systems manual should be read to understand its role and how to design a new one 
+ int []formationFunction()    //self contained, this can be replaced with other functions and only needs to return the adjusts of a new drone
  {
-
-        int adjusts[] = {0, 0};
-        mag = shellNum * shellRadius + shellRadius;
-        float angle = map(numInShell, 0, shellMax, 0, 2 * PI);
-        adjusts[0] = int(cos(angle) * mag);
-        adjusts[1] = int(sin(angle) * mag);
         numInShell++;
-        return adjusts;
-
+        spaceOut();
+        float mag = shellNum * shellRadius + shellRadius;
+        if(numInShell == shellMax) {numInShell = 0; mag = shellNum * shellRadius + shellRadius; shellMax = int(shellMax * ((mag + shellRadius) / mag)); shellNum++;}
+        return members[members.length - 1].adjusts;
  }
- 
- int []formationFunction(int numIn, int shellN, int shellM)
- {
-   int adjusts[] = {0,0};
-   mag = shellN * shellRadius + shellRadius;
-   float angle = map(numIn, 0, shellM, 0, 2 * PI);
-   adjusts[0] = int(cos(angle) * mag);
-   adjusts[1] = int(sin(angle) * mag);
-   return adjusts;
- }
- 
+  
+ //does the exact opposite of the formation function, it's main job is to update the variables keeping track of where the function formula is at due to drones leaving the squad
+ //for our purpose it also recalculates outer shell spacing when a drone leaves the squad
  void reverseFormationFunction()
  {
     numInShell--;
-    if(numInShell == -1 && shellNum > 1)
+    if(numInShell == -1)
     {
+      float mag = shellNum * shellRadius + shellRadius;
       shellNum--;
-      shellMax = int(shellMax * (float(mag - shellRadius) / float(mag)));
+      shellMax = int(shellMax * ((mag - shellRadius) / (mag)));
       numInShell = shellMax - 1;  
-      mag = shellNum * shellRadius + shellRadius;
     }
-    else if(numInShell == -1 && shellNum == 1 )
-    {
-     shellNum = 0;
-     shellMax = oMax;
-     numInShell = shellMax - 1;
-     mag = shellRadius;
-    }
-    
+    spaceOut();
  }
   
-  Drone[] createSquadMate(int num) //takes in how many new drones you want to spawn
+  Drone[] createSquadMate(int num) //takes in how many new drones you want to spawn, returns a list of the created drones
   {
     Drone drones[] = new Drone[num];
     for(int i = 0; i < num; i++) {drones[num] = createSquadMate();}
@@ -105,50 +83,39 @@ class Squad
   Drone createSquadMate()
   {
     Drone newDrone;
-    Agent tempAgent; //will be the rigid body for our newDrone
-    try
-    {
-      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + (shellNum + 2) * shellRadius + shellRadius, squadLeader.droneBody.coordinates[1] + (shellNum + 2) * shellRadius};
-      tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);  
-      newDrone = new Drone(tempAgent);
-    }
-    catch (NullPointerException e)
-    {
-      int tempCoordinates[] = {squadLeader.droneBody.coordinates[0] + shellRadius, squadLeader.droneBody.coordinates[1]};
-      tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);
-      newDrone = new Drone(tempAgent);
-    }
+    Agent tempAgent;                                       //will be the rigid body for our newDrone
+    int tempCoordinates[] = new int[NUM_AXIS];
+    for(int i = 0; i < NUM_AXIS; i++) {tempCoordinates[i] = squadLeader.droneBody.coordinates[i] + (shellNum + 2) * shellRadius + shellRadius;}       //making up some spawn coordinates, spawns the drone just outside the current formation no matter the size
+    tempAgent = new Agent(tempCoordinates, squadLeader.droneBody.forces, squadLeader.droneBody.constants, squadLeader.droneBody.maxOutputs);  
+    newDrone = new Drone(tempAgent);
     return newDrone;
   }
   
-  void addSquadMate(Drone newDrone)        //actually adds the new drone to the squad
+  void addSquadMate(Drone newDrone)        //adds new drones to the squad
   {
     if(members == null) {members = new Drone[1]; members[0] = newDrone;}
     else{members = (Drone[])append(members, newDrone);}
+    members[members.length - 1].squad = this;
     int tempAdjust[] = formationFunction();
-    newDrone.adjusts = tempAdjust;
-    spaceOut();
-    if(numInShell == shellMax) {numInShell = 0; shellMax = int(shellMax * (float(mag + shellRadius) / mag)); shellNum++;}
-    members[members.length - 1].lead = squadLeader;
+    arrayCopy(tempAdjust, newDrone.adjusts);
   }
   
-  void addSquadMate(Drone newDrone, int[] adjusts)        //actually adds the new drone to the squad
+  //adds new drones to the squad, takes in adjusts as well which cancels out a call to the formation function, used to add special drones to the squad
+  //note this extra member is not counted in members to avoid being caught up in rearrangement
+  void addSquadMate(Drone newDrone, int[] adjusts)      
   {
-    if(members == null) {members = new Drone[1]; members[0] = newDrone;}
-    else{members = (Drone[])append(members, newDrone);}
-    members[members.length - 1].lead = this.squadLeader;
-    members[members.length - 1].adjusts = adjusts;
+    newDrone.squad = this;
+    arrayCopy(adjusts, members[members.length - 1].adjusts);
   }
   
-  Drone removeSquadMate()
+  Drone removeSquadMate()                                 //kicks the last joined member out of the squad and returns the drone object
   {
     Drone tempDrone = null;
     if(members == null || members.length == 0) {return tempDrone;}
     tempDrone = members[members.length - 1];
     members = (Drone[])shorten(members);
-    reverseFormationFunction();
-    spaceOut();
-    tempDrone.lead = null;
+    reverseFormationFunction();                           //updates the status of the formation function and recalculates outershell shape
+    tempDrone.squad = null;
     return tempDrone;  
   }
  
@@ -160,28 +127,62 @@ class Squad
   return 1;
  }
   
-  void update()
+  void update()                    //easy way to call the update function for all the drones in a squad
   {
     squadLeader.update();
     if(members != null) {for(int i = 0; i < members.length; i++) {members[i].update();}}
   }
-  
- void move(int x, int y) {squadLeader.move(x, y);}
-  
- void spaceOut()
+ 
+ //asigns the squad a new leader, and reforms the squad around the new leader
+ void newLeader(Drone newLeader)
  {
+  Drone oldLeader = squadLeader;                                                                         //saving him so we can add him back to the squad
+  oldLeader.isLeader = false;
+  newLeader.isLeader = true;
+  newLeader.squad = this;
+  Drone[] oldMembers = new Drone[members.length];                                                        //remembering the old members so we can add them all back in new formation
+  arrayCopy(members, oldMembers);
+  members = null;
+  this.squadLeader = newLeader;
+  resetFormation();
+  addSquadMate(oldLeader);
+  
+  boolean inSquad = false;                                                                                //if the new squadLeader was a member of the squad we will reform differently
+  for(int i = 0; i < oldMembers.length; i++) {if(oldMembers[i] == squadLeader) {inSquad = true;}}
+  
+  if(inSquad) {for(int i = 0; i < oldMembers.length; i++) {if(oldMembers[i] == squadLeader) {continue;} addSquadMate(oldMembers[i]);}} //just keep everyone in nearly the same spot if the new leader was a member
+  else {for(int i = oldMembers.length - 1; i > 0; i--) {if(oldMembers[i] == squadLeader) {continue;} addSquadMate(oldMembers[i]);}}  //peel off like an onion and switch spots outside to in and vice versa if the new leader was not a squad member
+  
+ }
+  
+ void resetFormation()    //quick way to reset the formation function whenever needed
+ {
+  shellNum = 0;
+  shellMax = oMax;
+  numInShell = 0;
+ }
+  
+ void move(int coor[])                                                                         //resets the desired state of the leader so it will move there
+ {
+     for(int i = 0; i < NUM_AXIS; i++) {squadLeader.droneBody.desiredState[i] = coor[i];}
+     squadLeader.droneBody.reset = true;
+ }
+  
+ void spaceOut()                                                                              //spaces out everyone in the outer shell when not filled to maximize space efficiency
+ {
+    float mag = shellNum * shellRadius + shellRadius;
+    int tempAdjusts[] = new int[NUM_AXIS];
+    for(int j = 0; j < NUM_AXIS; j++) {tempAdjusts[j] = 0;}
     for(int i = members.length - 1; i > members.length - 1 - numInShell; i--)
     {
-      mag = shellNum * shellRadius + shellRadius;
       float angle = map(i - members.length + numInShell, 0, numInShell, 0, 2 * PI);
-      int tempAdjusts[] = {0,0};
       tempAdjusts[0] = int(mag * cos(angle));
       tempAdjusts[1] = int(mag * sin(angle));
-      members[i].adjusts = tempAdjusts;
+      arrayCopy(tempAdjusts, members[i].adjusts);
     }
  }
   
- void squadDebug(char[] startTitle)
+ void squadDebug(char[] startTitle)                                                          //just a testing function used to debug the formation function
  {
    println(startTitle);
    println("Shell Num: ", shellNum);
