@@ -117,7 +117,7 @@ void loop()
     angleRoll -= anglePitch * sin(gyroZ * 0.000001066);                                     //this isn't the easiest concept to explain in comments, feel free to ask Corey
 
     //Accelerometer angle calculations
-    accMag = sqrt(sq(accX)+sq(accY)+sq(accZ));                                              //Calculate the total accelerometer vector magnitude
+    accMag = sqrt((accX * accX) + (accY * accY) + (accZ * accZ));                                              //Calculate the total accelerometer vector magnitude
 
     //57.296 = 1 / (3.142 / 180) to convert to radians
     anglePitchAcc = asin((float)accY/accMag)* 57.296;                                       //Calculate the pitch angle

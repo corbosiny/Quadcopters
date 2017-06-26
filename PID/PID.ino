@@ -15,8 +15,9 @@
 //it essentially will be given a desired state(certain pitch, roll, and yaw rotations) and adjust to that state
 //there are some links to videos on the math behind it on the drive, a quick youtube search will get you some results too
 
-#include <MotorController.h>
-#include <IMU.h>
+#include "MotorController.h"
+#include "IMU.h"
+#include "oAvoider.h"
 
 int pins[4] = {2,3,4,5};
 MotorController motors(pins);                       //change pins to whatever you need 
@@ -67,7 +68,7 @@ void loop()
 void adjustState()                                                          //goes through every aspect of the drones rotations and adjust them toward the desired state
 {
 
-  imu.readIMUdata();
+  imu.readIMUData();
   adjustAltitude();
   adjustPitch();
   adjustRoll();
@@ -160,7 +161,7 @@ void adjustYaw()                                                            //us
 void adjustAltitude()                                                      //adjust altitude toward desired altitude by either raising or lowering group motor speed
 {
 
-  float error = imu.altitude - targets[3];
+  float error = imu.alt - targets[3];
   float proportional = proConstant * error;
   float derivative = derConstant * (error - lastErrors[3]) / (millis() - dt);
   integrals[3] += (error / (millis() - dt)) * intConstant;
@@ -186,7 +187,7 @@ void adjustAltitude()                                                      //adj
 void adjustAxis(int axisNum)                                                            //0 = pitch, 1 = roll, 2 = yaw, 3 = altitude
 {
 
-  int *data = imu.readIMUdata();
+  float *data = imu.readIMUData();
   float error = data[axisNum] - targets[axisNum];                                     //calculates error term then uses the PID formulas to get the Proportional, integral, and derivative term
   float proportional = proConstant * error;                                               
   float derivative = derConstant * (error - lastErrors[axisNum]) / (millis() - dt);
@@ -243,7 +244,7 @@ void changeTargets(int newTargets[4])                                           
    lastErrors[0] = targets[0] - imu.anglePitch;
    lastErrors[1] = targets[1] - imu.angleRoll;
    lastErrors[2] = targets[2] - imu.heading;
-   lastErrors[3] = targets[3] - imu.altitude;
+   lastErrors[3] = targets[3] - imu.alt;
    for(int i = 0; i < 4; i++) {integrals[i] = 0; targetsChanged[i] = true;}                 //setting all the flags in targetsChanged to signal a reset of the derivative and integral terms to avoid overcompensation
    
 }
@@ -270,7 +271,7 @@ void changeTarget(int index, int newTarget)
     break;
 
     case 3:
-    lastErrors[index] = targets[index] - imu.altitude;
+    lastErrors[index] = targets[index] - imu.alt;
     break;
  
   }
@@ -281,7 +282,7 @@ int *calibrateMotors()                                                          
 {
   
    float threshold;                                                                         //how large the magnitude of the vibrations can be until we decide that the motors are on
-   imu.readMPUdataRaw();                                                                     //updating
+   imu.readMPUDataRaw();                                                                     //updating
    float mag = sqrt(sq(imu.accX) + sq(imu.accY));                                           //magnitude of the vibrations
    int newOffsets[4] = {0,0,0,0};                                                           
    int turnOnSpeeds[4] = {0,0,0,0};                                                         //will hold the voltages the motors turn on at
@@ -293,7 +294,7 @@ int *calibrateMotors()                                                          
 
         currentSpeed += 10;                                                                 
         motors.writeMotor(i, currentSpeed);                                                 //write motors more and more speed
-        imu.readMPUdataRaw();                                                               //read the MPU data
+        imu.readMPUDataRaw();                                                               //read the MPU data
         int mag = sqrt(sq(imu.accX) + sq(imu.accY));                                        //calculating magnitude of vibrations
         
       }
