@@ -1,25 +1,25 @@
 int baseCoordinates[] = {250, 250};                                                                                          //starting coordinates for the first squad leader
 int baseCoordinates2[] = {350, 350};                                                                                         //starting coordinates for the second squad leader
 
-float forces[] = {0,0};                                                                                                      //starting forces on the first squad leader
-float forces2[] = {0,0};                                                                                                     //starting forces on the second squad leader
-float constants[] = {15,10,.5};                                                                                                //PID constants 1 - proportional, 2 - integral, 3 - derivative
-int maxOutputs[] = {150, 250, 100};                                                                                          //Speed limits for the PID controller outputs
+float outsideForces[] = {0,0};                                                                                                      //starting forces on the first squad leader
+float outsideForces2[] = {0,0};                                                                                                     //starting forces on the second squad leader
+float PIDconstants[] = {15,10,.5};                                                                                                //PID constants 1 - proportional, 2 - integral, 3 - derivative
+int maxPIDoutputs[] = {150, 250, 100};                                                                                          //Speed limits for the PID controller outputs
 
 int maxDistance = 30;                                                                                                        //distance the obstalce avoidance starts at
 int minDistance = 10;                                                                                                        //minimum distance a drone will get to an object
 
 int NUM_AXIS = 2;                                                                                                            //number of dimensions, program is scalable to multiple dimensions
 
-Agent agents[] = new Agent[0];                                                                                               //holds a list of all the rigid bodies in the field, used for obstacle avoidance
+RigidBody rigidBodies[] = new RigidBody[0];                                                                                               //holds a list of all the rigid bodies in the field, used for obstacle avoidance
 
 Squad testSquad;                                                                                                             
 Squad testSquad2;
 
 int adjusts[] = new int[NUM_AXIS];
 
-Drone leadDrone = new Drone(new Agent(baseCoordinates, forces, constants, maxOutputs, color(0,0,255)), testSquad);              //creating our two initial squad leaders
-Drone leadDrone2 = new Drone(new Agent(baseCoordinates2, forces2, constants, maxOutputs, color(255,0,0)), testSquad2);
+Drone leadDrone = new Drone(new RigidBody(baseCoordinates, outsideForces, PIDconstants, maxPIDoutputs, color(0,0,255)), testSquad);              //creating our two initial squad leaders
+Drone leadDrone2 = new Drone(new RigidBody(baseCoordinates2, outsideForces2, PIDconstants, maxPIDoutputs, color(255,0,0)), testSquad2);
 
 Squad squads[] = new Squad[0];                                                                                               //keeps track of all the squads in the simulation
 
@@ -40,12 +40,12 @@ void draw()
      background(0);
      for(int i = 0; i < squads.length; i++)
      {
-        squads[i].update();                                                                                                //applies forces and calculates new coordiantes for the squad leaders
+        squads[i].updateCoordinates();                                                                                     //applies forces and calculates new coordiantes for the squad leaders
         if(squads[i].members != null)
         {
             for(int j = 0; j < squads[i].members.length; j++)
             {
-              squads[i].members[j].droneBody.forces = generateForces(20);                                                  //applies random forces to each member in the squad if a list of members exist
+              squads[i].members[j].droneBody.outsideForces = generateRandomOutsideForces(20);                              //applies random forces to each member in the squad if a list of members exist
             }
         } 
      }
@@ -71,9 +71,9 @@ void keyPressed()
   else if(key == 'x')                                            //transfers a drone from squad 2 to squad 1 if any
   {testSquad2.transferDrone(testSquad);}
  
- else if(key == 'c')                                             //spawns a new drone in squad 1
+ else if(key == 'c')                                             
  {testSquad.addSquadMate(testSquad.createSquadMate());}
- else if(key == 'v')                                             //spawns a new drone in squad 2
+ else if(key == 'v')                                             
  {testSquad2.addSquadMate(testSquad2.createSquadMate());}
 
   else if(key == '0')       //used for testing leader switching, sets the new leader to the first member in the squad
@@ -81,33 +81,34 @@ void keyPressed()
     if(testSquad.members != null && testSquad.members.length > 0) {testSquad.newLeader(testSquad.members[0]);}
   }
 
+
  //all keys below increase forces on squad 1, so that you can see the effect of forces on a squad vs no forces on another squad(squad 2 in this case)
  else if(key == 'w')  //increases forces north
  {
-   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[1] -= 10;}}
-   testSquad.squadLeader.droneBody.forces[1] -= 10;
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.outsideForces[1] -= 10;}}
+   testSquad.squadLeader.droneBody.outsideForces[1] -= 10;
  }
  else if(key == 's')  //increases forces south
  {
-   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[1] += 10;}}
-   testSquad.squadLeader.droneBody.forces[1] += 10;
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.outsideForces[1] += 10;}}
+   testSquad.squadLeader.droneBody.outsideForces[1] += 10;
  }
  else if(key == 'a') //increases forces west
  {
-   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[0] -= 10;}}
-   testSquad.squadLeader.droneBody.forces[0] -= 10;
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.outsideForces[0] -= 10;}}
+   testSquad.squadLeader.droneBody.outsideForces[0] -= 10;
  }
  else if(key == 'd') //increase forces east
  {
-   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.forces[0] += 10;}}
-   testSquad.squadLeader.droneBody.forces[0] += 10;
+   if(testSquad.members != null) {for(int i = 0; i < testSquad.members.length; i++) {testSquad.members[i].droneBody.outsideForces[0] += 10;}}
+   testSquad.squadLeader.droneBody.outsideForces[0] += 10;
  }
  
 
 }
 
 //all functions below here just generate random forces, can be substituted into the draw loop for the generate forces function to see the effect of different types of forces
-float []generateForces(int max) //generates a list of forces on each axis up to the max (can be positive or negative)
+float []generateRandomOutsideForces(int max) //generates a list of forces on each axis up to the max (can be positive or negative)
 {
  
  float []forces = new float[NUM_AXIS];
@@ -119,7 +120,7 @@ float []generateForces(int max) //generates a list of forces on each axis up to 
   
 }
 
-float []generateForces(int max[]) //generates a list of the forces on each axis, this one can take a max for each axis (can be positive or negative)
+float []generateRandomOutsideForces(int max[]) //generates a list of the forces on each axis, this one can take a max for each axis (can be positive or negative)
 {
   float []forces = new float[NUM_AXIS];
   for(int i = 0; i < NUM_AXIS; i++)
@@ -129,7 +130,7 @@ float []generateForces(int max[]) //generates a list of the forces on each axis,
   return forces;  
 }
 
-float []generateTrigForces(int mag) //generates sinosoidal forces up to the given magnitude for each axis
+float []generateRandomTrigForces(int mag) //generates sinosoidal forces up to the given magnitude for each axis
 {
   float []forces = new float[NUM_AXIS];
   for(int i = 0; i < NUM_AXIS; i++)
@@ -139,7 +140,7 @@ float []generateTrigForces(int mag) //generates sinosoidal forces up to the give
   return forces;
 }
 
-int []generateTrigForces(int mag[]) //generates sinosoidal forces up to the given magnitude, can give a mag for each axis in this function
+int []generateRandomTrigForces(int mag[]) //generates sinosoidal forces up to the given magnitude, can give a mag for each axis in this function
 {
  int []forces = new int[NUM_AXIS]; 
  for(int i = 0; i < NUM_AXIS; i++)
