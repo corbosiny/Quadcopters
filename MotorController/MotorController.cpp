@@ -2,47 +2,100 @@
 
 MotorController::MotorController(int p_motorPins[4], int p_motorSpeedOffsets[4] = {})                 //takes in the motorpins and offsets
 {
-
   memcpy(motorPins, p_motorPins, sizeof(p_motorPins));
   memcpy(motorSpeedOffsets, p_motorSpeedOffsets, sizeof(p_motorSpeedOffsets));
-
-  for(int i = 0; i < NUM_MOTORS; i++) {motors[i].attach(motorPins[i]); currentMotorSpeeds[i] = 0;}                           //attachs each of the motor's servo object to their respective pin
-  
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {motors[motorNum].attach(motorPins[motorNum]); currentMotorSpeeds[motorNum] = 0;} 
 }
 
-void MotorController::writeMotor(int motorNumber, int newSpeed)                                       //Sets speed of one motor                                       
+void MotorController::updateMotorSpeeds(int newMotorSpeeds[NUM_MOTORS])
 {
-  currentMotorSpeeds[motorNumber - 1] = newSpeed - motorSpeedOffsets[motorNumber - 1];                //Edits stores speed and factors in offset before writing to the motor
-  motors[motorNumber - 1].writeMicroseconds(currentMotorSpeeds[motorNumber - 1]);                     
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {updateMotorSpeed(motorNum, newMotorSpeeds[motorNum]);}
 }
 
-void MotorController::writeMotors(int speeds[])                                                       //Takes in array of speeds and writes it to all motors
+void MotorController::updateMotorSpeed(int motorNum, int newMotorSpeed)
 {
+  currentMotorSpeeds[motorNum] = regulateMotorSpeed(motorNum, newMotorSpeed);
+  writeMotorNewSpeed(motorNum, currentMotorSpeeds[motorNum]);
+}
 
-  for(int i = 0; i < NUM_MOTORS; i++)                                                        
-  {
-    motors[i].writeMicroseconds(speeds[i] - motorSpeedOffsets[i]);                                    //Updates tracked speeds and factors in offsets
-    currentMotorSpeeds[i] = speeds[i] - motorSpeedOffsets[i];
+void MotorController::incrementAndWriteMotorSpeeds(float increments[])                                                     
+{
+   for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) 
+   {incrementAndWriteMotorSpeed(motorNum, increments[motorNum]);}
+}
+
+void MotorController::incrementAndWriteMotorSpeed(int motorNumber, int increment = 1) 
+{
+  currentMotorSpeeds[motorNumber] = regulateMotorSpeed(motorNumber, currentMotorSpeeds[motorNumber] + increment);
+  writeMotorNewSpeed(motorNumber, currentMotorSpeeds[motorNumber]);
+} 
+
+
+int *MotorController::regulateMotorSpeeds(int unregulatedSpeeds[NUM_MOTORS]) 
+{
+  int regulatedMotorSpeeds[NUM_MOTORS];
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {regulatedMotorSpeeds[motorNum] = regulateMotorSpeed(motorNum, unregulatedSpeeds);}
+  return regulatedMotorSpeeds;
+}
+
+int MotorController::regulateMotorSpeed(int motorNum, int motorSpeed)
+{
+  int offsetedSpeed = offsetMotorSpeed(motorNum, motorSpeed);
+  int offsetedAndLimitedMotorSpeed = limitMotorSpeed(motorNum, offsetedSpeed);
+  return offsetedAndLimitedMotorSpeed;
+}
+
+int *MotorController::offsetMotorSpeeds(int motorSpeeds[NUM_MOTORS]) 
+{
+  int offsetMotorSpeeds[NUM_MOTORS];
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {offsetMotorSpeeds[motorNum] = offsetMotorSpeed(motorNum, motorSpeeds[motorNum]);}  
+}
+
+int MotorController::offsetMotorSpeed(int motorNum, int motorSpeed) {return motorSpeed - motorSpeedOffsets[motorNum];}
+
+int *MotorController::limitMotorSpeeds(int motorSpeeds[NUM_MOTORS])
+{
+  int limitedSpeeds[NUM_MOTORS];
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {limitedSpeeds[motorNum] = limitMotorSpeed(motorNum, motorSpeeds[motorNum]);}
+  return limitedSpeeds;
+}
+
+int MotorController::limitMotorSpeed(int motorNum, int motorSpeed)
+{
+  if(motorSpeed > MAX_MOTOR_SPEED) {return MAX_MOTOR_SPEED;}
+  else if(motorSpeed < MIN_MOTOR_SPEED) {return MIN_MOTOR_SPEED;}
+  return motorSpeed;
+}
+
+void MotorController::writeMotorsNewSpeeds(int newMotorSpeeds[])                                                  
+{
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {writeMotorNewSpeed(motorNum, newMotorSpeeds[motorNum]);}
+}
+
+void MotorController::writeMotorNewSpeed(int motorNumber, int newSpeed)                                                                         
+{               
+  motors[motorNumber].writeMicroseconds(newSpeed);                     
+}
+
+
+
+void MotorController::motorTest()                                                                                                               
+{
+  for(int i = 0; i < 1000; i += 10) {int testSpeeds[4] = {1000 + i, 1000 + i, 1000 + i, 1000 + i}; writeMotorsNewSpeeds(testSpeeds); delay(100);}
+  for(int i = 1000; i > 0; i -= 10) {int testSpeeds[4] = {1000 + i, 1000 + i, 1000 + i, 1000 + i}; writeMotorsNewSpeeds(testSpeeds); delay(100);}
+}
+
+//getters and setters below here
+int *MotorController::getMotorSpeedOffsets() {return motorSpeedOffsets;}
+void MotorController::setMotorSpeedOffsets(int newOffsets[NUM_MOTORS]) {memcpy(motorSpeedOffsets, newOffsets, sizeof(newOffsets));}
+int *MotorController::getMotorPins() {return motorPins;}
+void MotorController::setMotorPins(int newMotorPins[NUM_MOTORS]) 
+{
+  memcpy(motorPins, newMotorPins, sizeof(motorPins)); 
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) 
+  { 
+    motors[motorNum].attach(newMotorPins[motorNum]); 
+    writeMotorsNewSpeeds(currentMotorSpeeds);
   }
-  
 }
 
-void MotorController::adjustMotors(float adjustments[])                                                    //Adjust speeds of all the motors in relation to their current speeds, this is why we keep track of their current speeds 
-{
-
-   for(int i = 0; i < NUM_MOTORS; i++) {currentMotorSpeeds[i] += (int)adjustments[i];}                     //adds adjustments to each motors speed
-   writeMotors(currentMotorSpeeds);
-
-}
-
-void MotorController::adjustMotor(int motorNumber, int adjustment) {writeMotor(motorNumber, currentMotorSpeeds[motorNumber - 1] + adjustment);} //adjust one motors speed, makes use of the write motor function to do it
-
-void MotorController::motorTest()                                                                                                               //Just writes the motors through a bunch of values for us to see if they work smoothly or not
-{
-
-  for(int i = 0; i < 1000; i += 10) {int testSpeeds[4] = {1000 + i, 1000 + i, 1000 + i, 1000 + i}; writeMotors(testSpeeds); delay(100);}
-  for(int i = 1000; i > 0; i -= 10) {int testSpeeds[4] = {1000 + i, 1000 + i, 1000 + i, 1000 + i}; writeMotors(testSpeeds); delay(100);}
-  
-}
-
-void MotorController::changeOffsets(int newOffsets[NUM_MOTORS]) {memcpy(motorSpeedOffsets, newOffsets, sizeof(newOffsets));}
