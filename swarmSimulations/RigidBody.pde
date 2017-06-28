@@ -155,7 +155,7 @@ class RigidBody    //Essentially a rigid body object of the Drone
      if(abs(difference) > 0) {mapped *= (difference / abs(difference));}                               //here we preserver the sign of the adjustment, AKA make sure we adjust in the right direction, we check for zero to avoid divide by zero errors
 
      if(Float.isNaN(mapped))                                                                           //occasionally, due to how the map function works, we get NaN. We just return 0 as usually this means the difference value wasn't far in the range of our map scales I think
-     {return 0;}
+     {println("GOT YOUR NAN RIGHT HERE!"); return 0;}
      else if(abs(mapped) > totalForce)                                                                 //makes sure mapped stays within our bounds and preserves the sign when limiting the output
      {
        mapped = totalForce;

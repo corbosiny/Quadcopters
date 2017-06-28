@@ -10,10 +10,10 @@ class Squad
   //java does not support static variables in methods so,
   //I have them declared as class members, but in the drone they will belong
   //only to the specific formation function
-  int originalMax = 6;
-  int maxDronesInShell = originalMax;
-  int numDronesInShell = 0;
-  int shellNum = 0;
+  int maxDronesInFirstShell = 6;
+  int maxDronesInOuterShell = maxDronesInFirstShell;
+  int numDronesInOuterShell = 0;
+  int shellCounter = 0;
   int shellRadius = maxDistance + 5;
 
   Squad(Drone squadLeader)                                                          //all a squad needs is a leader to be formed
@@ -51,10 +51,10 @@ class Squad
  //for all formation functions the flight systems manual should be read to understand its role and how to design a new one 
  int []calcFormationPosition()    //self contained, this can be replaced with other functions and only needs to return the adjusts of a new drone
  {
-        numDronesInShell++;
+        numDronesInOuterShell++;
         spaceOutDronesInOuterShell();
-        float mag = shellNum * shellRadius + shellRadius;
-        if(numDronesInShell == maxDronesInShell) {numDronesInShell = 0; mag = shellNum * shellRadius + shellRadius; maxDronesInShell = int(maxDronesInShell * ((mag + shellRadius) / mag)); shellNum++;}
+        float mag = shellCounter * shellRadius + shellRadius;
+        if(numDronesInOuterShell == maxDronesInOuterShell) {numDronesInOuterShell = 0; mag = shellCounter * shellRadius + shellRadius; maxDronesInOuterShell = int(maxDronesInOuterShell * ((mag + shellRadius) / mag)); shellCounter++;}
         return members[members.length - 1].coordinatesAdjusts;
  }
   
@@ -62,13 +62,13 @@ class Squad
  //for our purpose it also recalculates outer shell spacing when a drone leaves the squad
  void reverseFormationFunction()
  {
-    numDronesInShell--;
-    if(numDronesInShell == -1)
+    numDronesInOuterShell--;
+    if(numDronesInOuterShell == -1)
     {
-      float mag = shellNum * shellRadius + shellRadius;
-      shellNum--;
-      maxDronesInShell = int(maxDronesInShell * ((mag - shellRadius) / (mag)));
-      numDronesInShell = maxDronesInShell - 1;  
+      float mag = shellCounter * shellRadius + shellRadius;
+      shellCounter--;
+      maxDronesInOuterShell = int(maxDronesInOuterShell * ((mag - shellRadius) / (mag)));
+      numDronesInOuterShell = maxDronesInOuterShell - 1;  
     }
     spaceOutDronesInOuterShell();
  }
@@ -85,7 +85,7 @@ class Squad
     Drone newDrone;
     RigidBody tempRigidBody;                                       //will be the rigid body for our newDrone
     int tempCoordinates[] = new int[NUM_AXIS];
-    for(int i = 0; i < NUM_AXIS; i++) {tempCoordinates[i] = squadLeader.droneBody.coordinates[i] + (shellNum + 2) * shellRadius + shellRadius;}       //making up some spawn coordinates, spawns the drone just outside the current formation no matter the size
+    for(int i = 0; i < NUM_AXIS; i++) {tempCoordinates[i] = squadLeader.droneBody.coordinates[i] + (shellCounter + 2) * shellRadius + shellRadius;}       //making up some spawn coordinates, spawns the drone just outside the current formation no matter the size
     tempRigidBody = new RigidBody(tempCoordinates, squadLeader.droneBody.outsideForces, squadLeader.droneBody.PIDconstants, squadLeader.droneBody.maxPIDoutputs);  
     newDrone = new Drone(tempRigidBody);
     return newDrone;
@@ -154,9 +154,9 @@ class Squad
   
  Drone[] resetFormation()    //quick way to reset the formation function whenever needed
  {
-  shellNum = 0;
-  maxDronesInShell = originalMax;
-  numDronesInShell = 0;
+  shellCounter = 0;
+  maxDronesInOuterShell = maxDronesInFirstShell;
+  numDronesInOuterShell = 0;
   Drone[] oldMembers = new Drone[members.length];                                                        //remembering the old members so we can add them all back in new formation
   arrayCopy(members, oldMembers);
   members = null;
@@ -171,12 +171,12 @@ class Squad
   
  void spaceOutDronesInOuterShell()                                                                              //spaces out everyone in the outer shell when not filled to maximize space efficiency
  {
-    float mag = shellNum * shellRadius + shellRadius;
+    float mag = shellCounter * shellRadius + shellRadius;
     int tempAdjusts[] = new int[NUM_AXIS];
     for(int j = 0; j < NUM_AXIS; j++) {tempAdjusts[j] = 0;}
-    for(int i = members.length - 1; i > members.length - 1 - numDronesInShell; i--)
+    for(int i = members.length - 1; i > members.length - 1 - numDronesInOuterShell; i--)
     {
-      float angle = map(i - members.length + numDronesInShell, 0, numDronesInShell, 0, 2 * PI);
+      float angle = map(i - members.length + numDronesInOuterShell, 0, numDronesInOuterShell, 0, 2 * PI);
       tempAdjusts[0] = int(mag * cos(angle));
       tempAdjusts[1] = int(mag * sin(angle));
       arrayCopy(tempAdjusts, members[i].coordinatesAdjusts);
@@ -186,9 +186,9 @@ class Squad
  void squadDebug(char[] startTitle)                                                          //just a testing function used to debug the formation function
  {
    println(startTitle);
-   println("Shell Num: ", shellNum);
-   println("Num In Shell: ", numDronesInShell);
-   println("Shell Max: ", maxDronesInShell);
+   println("Shell Num: ", shellCounter);
+   println("Num In Shell: ", numDronesInOuterShell);
+   println("Shell Max: ", maxDronesInOuterShell);
    println("\n\n");
  }
   
