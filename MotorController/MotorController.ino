@@ -7,6 +7,7 @@
 //----------------------------------------------\\
 
 #include <Servo.h>
+#include "MotorController.h"
 
 int motorPins[] = {};                                                                                     //Signal pin for each of the four motors                                                            
 int motorSpeedOffsets[] = {0,0,0,0};                                                                      //respective offsets for each motor on the drone, this is to help them run at the same speed
@@ -17,7 +18,7 @@ void setup()
 {
 
   for(int i = 0; i < 4; i++) {motors[i].attach(motorPins[i]);}                                            //attaches each pin to its respective motor
-  
+  int num = MotorController::NUM_MOTORS;
 }
 
 void loop() 

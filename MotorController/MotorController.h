@@ -11,8 +11,8 @@ class MotorController
 
   public:
     static const int NUM_MOTORS = 4;
-    static const int MAX_MOTOR_SPEED = 255;
-    static const int MIN_MOTOR_SPEED = 0;
+    static int MAX_MOTOR_SPEED;
+    static int MIN_MOTOR_SPEED;
     
     MotorController(int motorPins[NUM_MOTORS], int motorSpeedOffsets[NUM_MOTORS] = {});
 
@@ -21,12 +21,10 @@ class MotorController
     void incrementAndWriteMotorSpeeds(float increments[NUM_MOTORS]);                                                 
     void incrementAndWriteMotorSpeed(int motorNumber, int increment = 1);
 
-    int *regulateMotorSpeeds(int unregulatedSpeeds[NUM_MOTORS]);
-    int regulateMotorSpeed(int motorNum, int motorSpeed);
     int *offsetMotorSpeeds(int motorSpeeds[NUM_MOTORS]);
     int offsetMotorSpeed(int motorNum, int motorSpeed);
     int *limitMotorSpeeds(int motorSpeeds[NUM_MOTORS]);
-    int limitMotorSpeed(int motorNum, int motorSpeed);
+    int limitMotorSpeed(int motorSpeed);
 
     void writeMotorsNewSpeeds(int newMotorSpeeds[NUM_MOTORS]); 
     void writeMotorNewSpeed(int motorNumber, int newSpeed);                                                                                                                                      

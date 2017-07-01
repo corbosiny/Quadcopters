@@ -2,42 +2,71 @@
 #define PID_h
 
 #include "Arduino.h"
-#include "MotorController.h"
-#include "IMU.h"
 #include "oAvoider.h"
+#include "IMU.h"
 
 class PIDcontroller
 {
 
-  public:
-  static const int NUM_MOTORS = 4;     //number of motors on the drone, IDEAL NUMBER IS 4
-  static const int NUM_AXIS = 4;       //number of axis to correct on, see one of the first couple pages of the flight systems manual to see axis key
+  public:   
+  static const int NUM_AXIS = 4; 
+  static const int MAX_OUTPUT_FORCE = 500;
+    
+  PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3]);
+  PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3], ObstacleAvoider *newAvoider);                                           
   
-  PIDcontroller(MotorController *motorController, IMU *imu, int constants[3],  int maxOutputs[3]);                                      //takes in a motor controller, IMU, and maxSpeed essentially
-  PIDcontroller(MotorController *motorController, IMU *imu, int constants[3],  int maxOutputs[3], ObstacleAvoider *newAvoider);         //obstacle avoidance is optional for the PID controller
+  void resetPIDstate();
+  float *updateStateAdjustmentsToReachDesiredStates();
+  float updateStateAdjustmentToReachDesiredState(int axisNum);
+
+  void updateStateMeasurements(int axisNum);
+  void updateStateError(int axisNum);
+  void updateStateErrors();
+  float calcStateError(int axisNum);
+  float *calcStateErrors();
   
-  int calcError(int axis);                                                                                                            //returns how far we are from our desired state on an axis
-  void adjustAxis(int axisNum);                                                                                                       //adjusts PID outputs to get us closer to a desired state on an axis
-  void changeTargets(int newTargets[NUM_MOTORS]);                                                                                     //changes all the given desired axis targets
-  void changeTarget(int index, int newTarget);                                                                                        //changes the desired state target on one axis
-  int *calibrateMotors();                                                                                                             //finds the motor offsets
-  void newAvoider(ObstacleAvoider *newA);                                                                                             //assigns a new obstaacle avoider
+  void updateMeasurementTimer();
+  int calcSecondsSinceLastMeasurement();
+  
+  float calcDesiredStateAdjustmentForce(int axisNum);
+  float calcPIDadjustmentForce(int axisNum);
+  float *calcPIDadjustmentForceTerms(int axisNum);
+  float calcProportionalAdjustmentForce(int axisNum);
+  float calcIntegralAdjustmentForce(int axisNum);
+  float calcDerivativeAdjustmentForce(int axisNum);
+  float *regulatePIDterms(float unregulatedTerms[]);
+  float regulatePIDterm(int termNum, float termValue);
+  float getObstacleAvoidanceForces(int axisNum);
+  float regulateDesiredStateAdjustmentForce(float unregulatedForce);
+
+  void newAvoider(ObstacleAvoider *newAvoider);                                                                                             
+
+  int *getPIDconstants();
+  void setPIDconstants(int newConstants);
+  int *getMaxPIDtermOutputs();
+  void setMaxPIDtermOutputs(int newMaxTermOutputs[]);
+  float *getDesiredStates();
+  void setDesiredStates(float newDesiredStates[NUM_AXIS]);
+  void setDesiredState(int axisNum, float newTarget); 
   
   private:
-  int maxOutputs[3];                                                                                                                  //max outputs for each PID term
-  float targets[NUM_AXIS];                                                                                                            //desired state targets for each axis
-  float vibrationThresh;                                                                                                              //used when calibrating the motors, helps determine when a motor has turned on based on vibrations
-  float lastErrors[NUM_AXIS];                                                                                                         //used to calculate the derivative term
-  boolean targetsChanged[NUM_AXIS];                                                                                                   //flags used to avoid error spikes when we change the desired state
-  float integrals[NUM_AXIS];                                                                                                          //holds running errom sum on each axis
-  long long int dt;                                                                                                                   //change in time since the last measurement
-  float proConstant;                                                                                                                  //proportional
-  float intConstant;                                                                                                                  //integral
-  float derConstant;                                                                                                                  //derivative
-  float *data;                                                                                                                          //the IMU system data
-  IMU *imu;                                                                                                                            
-  MotorController *motors;                                                                                                            
-  ObstacleAvoider *avoider;                                                                                                           
+  int PIDtermConstants[3];                      //0 = proportional, 1 = integral, 2 = derivative
+  int maxPIDtermOutputs[3];                                                                                                                                                  
+  float proportionalConstant;                                                                                                                  
+  float integralConstant;                                                                                                                 
+  float derivativeConstant;   
+  
+  float desiredStates[NUM_AXIS];                                                                                                                                                                                
+  float lastStateErrors[NUM_AXIS];
+  float currentStateErrors[NUM_AXIS];                                                                                                         
+  boolean desiredStateChanged[NUM_AXIS];                                                                                                   
+  float integrals[NUM_AXIS];                                                                                                          
+  long long int timeLastMeasurementTaken;
+  float secondsSinceLastMeasurement;                                                                                                                   
+                                                                                                             
+  float *currentStates;                                                                                                                          
+  IMU *imu;                                                                                                                                                                                                                                      
+  ObstacleAvoider *obstacleAvoider;                                                                                                           
   
 };
 

@@ -1,140 +1,194 @@
 #include "PID.h"
 
-PIDcontroller::PIDcontroller(MotorController *motorController, IMU *imu, int constants[3], int maxOutputs[3])
+PIDcontroller::PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3])
 {
   this->imu = imu;
-  this->motors = motorController;
-  memcpy(this->maxOutputs, maxOutputs, sizeof(maxOutputs));
+  
+  memcpy(this->PIDtermConstants[3], PIDtermConstants[3], sizeof(PIDtermConstants));
+  memcpy(this->maxPIDtermOutputs, maxPIDtermOutputs, sizeof(maxPIDtermOutputs));
 
-  proConstant = constants[0];
-  intConstant = constants[1];
-  derConstant = constants[2];
-  for(int i = 0; i < NUM_AXIS; i++) {targetsChanged[i] = true; integrals[i] = 0;}
+  proportionalConstant = PIDtermConstants[0];
+  integralConstant = PIDtermConstants[1];
+  derivativeConstant = PIDtermConstants[2];
+  resetPIDstate();
 }
 
-PIDcontroller::PIDcontroller(MotorController *motorController, IMU *imu, int constants[3], int maxOutputs[3], ObstacleAvoider *newAvoider)
+PIDcontroller::PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3], ObstacleAvoider *newAvoider)
 {
   this->imu = imu; 
-  motors = motorController;
-  memcpy(this->maxOutputs, maxOutputs, sizeof(maxOutputs));
+  
+  this->obstacleAvoider = newAvoider;
+  
+  memcpy(this->PIDtermConstants[3], PIDtermConstants[3], sizeof(PIDtermConstants));
+  memcpy(this->maxPIDtermOutputs, maxPIDtermOutputs, sizeof(maxPIDtermOutputs));
 
-  proConstant = constants[0];
-  intConstant = constants[1];
-  derConstant = constants[2];
-  this->avoider = newAvoider;
-  for(int i = 0; i < NUM_AXIS; i++) {targetsChanged[i] = true; integrals[i] = 0;}
+  proportionalConstant = PIDtermConstants[0];
+  integralConstant = PIDtermConstants[1];
+  derivativeConstant = PIDtermConstants[2];
+  resetPIDstate();
 }
 
-void PIDcontroller::newAvoider(ObstacleAvoider *newA) {avoider = newA;}
-
-int PIDcontroller::calcError(int axis) {return (data[axis] - targets[axis]);}
-
-void PIDcontroller::adjustAxis(int axisNum)
+void PIDcontroller::resetPIDstate() 
 {
-
-  data = imu->readIMUData();
-  float error = data[axisNum] - targets[axisNum];                                     //calculates error term then uses the PID formulas to get the Proportional, integral, and derivative term
-  
-  float proportional = proConstant * error;
-  if(abs(proportional) > maxOutputs[0]) {proportional = maxOutputs[0] * (error / abs(error));}
-  
-  if(targetsChanged[axisNum] == true) {targetsChanged[axisNum] = false; lastErrors[axisNum] = error;}       //resetting the flags for changed targets and setting the last errors to the current error to essentially turn the derivative to zero to avoid over compensation                                        
-  
-  float derivative = derConstant * (error - lastErrors[axisNum]) / (millis() - dt);
-  if(abs(derivative) > maxOutputs[2]) {derivative = maxOutputs[2] * (derivative / abs(derivative));}
-  
-  integrals[axisNum] += (error / (millis() - dt)) * intConstant;
-  if(abs(integrals[axisNum]) > maxOutputs[1]) {integrals[axisNum] = maxOutputs[1] * (integrals[axisNum] / abs(integrals[axisNum]));}
-
-  lastErrors[axisNum] = error;                                                          //updates the last error term that the derivative uses                          
-
-  float output = 0;
-  //We divide by two to split the adjustment between the two sets of motors, one set's speed is always increased, while ones is always decreased. splits the burden
-  if(avoider != NULL && axisNum == 1) {output = (proportional + derivative + integrals[axisNum] - avoider->obstacleAvoidAxis(0, maxOutputs[0], maxOutputs[1], maxOutputs[2]) + avoider->obstacleAvoidAxis(2, maxOutputs[0], maxOutputs[1], maxOutputs[2])) / 2;}
-  else if(avoider != NULL && axisNum == 2) {output = (proportional + derivative + integrals[axisNum] - avoider->obstacleAvoidAxis(1, maxOutputs[0], maxOutputs[1], maxOutputs[2]) + avoider->obstacleAvoidAxis(3, maxOutputs[0], maxOutputs[1], maxOutputs[2])) / 2;}                 
-  else {(proportional + derivative + integrals[axisNum]) / 2;}
-  
-  if(abs(output) > maxOutputs[0] + maxOutputs[1] - maxOutputs[2]) {output = (maxOutputs[0] + maxOutputs[1] + maxOutputs[2]) * (output / abs(output));}
-  
-  if(axisNum == 4) {output *= 2;}                                                       //if we are adjusting altitude, we undo the one half as all the motors will go one way
-  float outputs[NUM_MOTORS];
-  for(int i = 0; i < NUM_MOTORS; i++) {outputs[i] = output;}                            //we put it in an arry format to work with the writeMotors command from the motorController library                              
-  switch(axisNum)                                                                       //different axis divide the motors into different sets, this switch figures out which we are working on
-  {
-    case 0:                                                                             //pitch, split into front two and back two, the back two get the opposite adjust from the front two
-    for(int i = NUM_MOTORS / 2; i < NUM_MOTORS; i++) {outputs[i] *= -1;}
-    motors->adjustMotors(outputs);  
-    break;
-    
-    case 1:                                                                             //roll, split into left two and right two motors, right two always get the opposite adjust from the right two 
-    outputs[NUM_MOTORS / 2 - 1] *= -1;
-    outputs[NUM_MOTORS / 2] *= -1;
-    motors->adjustMotors(outputs);
-    break;
-    
-    case 2:                                                                             //yaw, splits the motors along the left and right diagnols, one goes clockwise while the other spinds counter, the right diagnol always gets the opposite offset of he left diagnol
-    outputs[0] *= -1;                                                                   //This line assumes that motors 1 and 3 are the clockwise motors, just flip the signs of everyone if it is the opposite
-    outputs[NUM_MOTORS - 1] *= -1;
-    motors->adjustMotors(outputs);
-    break;
-    
-    case 3:                                                                             //altitude, all motors get the same adjust as the entire drone goes up or down to adjust this
-    motors->adjustMotors(outputs);
-    break;
-    
-  }
-  
-}
-
-void PIDcontroller::changeTargets(int newTargets[NUM_AXIS])
-{
-
-   memcpy(targets, newTargets, sizeof(newTargets));
-   for(int i = 0; i < NUM_AXIS; i++) 
+   for(int axis = 0; axis < NUM_AXIS; axis++) 
    {
-      integrals[i] = 0; 
-      targetsChanged[i] = true;                                                          //setting all the flags in targetsChanged to signal a reset of the derivative and integral terms to avoid overcompensation
+      integrals[axis] = 0; 
+      desiredStateChanged[axis] = true;                              //used to trigger derivative error spike prevention                          
    }                 
-  
 }
 
-void PIDcontroller::changeTarget(int index, int newTarget)
+
+
+float *PIDcontroller::updateStateAdjustmentsToReachDesiredStates()
 {
-  targets[index] = newTarget;
-  integrals[index] = 0;
-  targetsChanged[index] = true;                                                             //setting the flag in targetsChanged to signal a reset of the derivative and integral terms to avoid overcompensation
+  float adjustmentForces[NUM_AXIS];
+  for(int axis = 0; axis < NUM_AXIS; axis++) 
+  {
+    adjustmentForces[axis] = updateStateAdjustmentToReachDesiredState(axis);
+  }
+  return adjustmentForces;
 }
 
-int *PIDcontroller::calibrateMotors()
-{                                                                          
-   imu->readMPUDataRaw();                                                                    //updating
-   float mag = sqrt(sq(imu->accX) + sq(imu->accY));                                           //magnitude of the vibrations
-   int newOffsets[NUM_MOTORS];                                                           
-   int turnOnSpeeds[NUM_MOTORS];                                                            //will hold the voltages the motors turn on at
-   int currentSpeed = 0;                                                                    //holds the current speed we are testing
-   for(int i = 0; i < NUM_MOTORS; i++)                                                               //will run through every motor
-   {
-      newOffsets[i] = 0;
-      turnOnSpeeds[i] = 0;
-      while(mag < vibrationThresh)                                                          //as long as the magnitude of the vibrations is small enough, we assume the motor isn't fully turned on
-      {
+float PIDcontroller::updateStateAdjustmentToReachDesiredState(int axisNum)
+{
+  updateStateMeasurements(axisNum);
+  float adjustmentForce = calcDesiredStateAdjustmentForce(axisNum);
+  adjustmentForce = regulateDesiredStateAdjustmentForce(adjustmentForce);
+  return adjustmentForce;
+}
 
-        currentSpeed += 10;                                                                 
-        motors->writeMotor(i, currentSpeed);                                                 //write motors more and more speed
-        imu->readMPUDataRaw();                                                               //read the MPU data
-        mag = sqrt(sq(imu->accX) + sq(imu->accY));                                            //calculating magnitude of vibrations
-        
-      }
+void PIDcontroller::updateStateMeasurements(int axisNum)
+{
+  currentStates = imu->readIMUData();
+  updateStateError(axisNum);
+  updateMeasurementTimer();
+}
 
-       turnOnSpeeds[i] = currentSpeed;                                                      //store speeds
-       
-   }
-   
-   int topSpeed = turnOnSpeeds[0];
-   for(int i = 0; i < NUM_MOTORS; i++) {if(turnOnSpeeds[i] > topSpeed) {topSpeed = turnOnSpeeds[i];}}     //take max start on speed, calculate offsets to make them all that speed
-                                                 
-   for(int i = 0; i < NUM_MOTORS; i++) {newOffsets[i] = turnOnSpeeds[i] - topSpeed;}        //calculating offsets
-   motors->changeOffsets(newOffsets);                                                        //setting current offsets to the new ones
-   return newOffsets;
+void PIDcontroller::updateStateError(int axisNum)
+{
+  int newStateError = calcStateError(axisNum);
+  if(desiredStateChanged[axisNum]) {lastStateErrors[axisNum] = newStateError;}                                 //prevents initial spikes in derivative error when a state has changed        
+  else 
+  {
+    lastStateErrors[axisNum] = currentStateErrors[axisNum]; 
+    currentStateErrors[axisNum] = newStateError;
+  }
+}
+
+void PIDcontroller::updateStateErrors()
+{
+  for(int axis = 0; axis < NUM_AXIS; axis++) {updateStateError(axis);}  
+};
+
+
+float PIDcontroller::calcStateError(int axisNum) 
+{
+  return (desiredStates[axisNum] - currentStates[axisNum]);
+}
+
+float *PIDcontroller::calcStateErrors()
+{
+  float currentStateErrors[NUM_AXIS];
+  for(int axis = 0; axis < NUM_AXIS; axis++) {currentStateErrors[axis] = calcStateError(axis);}
+  return currentStateErrors;
+}
+
+void PIDcontroller::updateMeasurementTimer()
+{
+ secondsSinceLastMeasurement = calcSecondsSinceLastMeasurement();
+ timeLastMeasurementTaken = millis();  
+}
+
+int PIDcontroller::calcSecondsSinceLastMeasurement() {return (millis() - timeLastMeasurementTaken) / 1000;}
+
+
+
+float PIDcontroller::calcDesiredStateAdjustmentForce(int axisNum)
+{
+  float PIDtotalAdjustmentForce = calcPIDadjustmentForce(axisNum);
+  float obstacleAvoidanceAdjustmentForce = getObstacleAvoidanceForces(axisNum);
+  return PIDtotalAdjustmentForce + obstacleAvoidanceAdjustmentForce;
+}
+
+float PIDcontroller::calcPIDadjustmentForce(int axisNum)
+{
+  float *terms = calcPIDadjustmentForceTerms(axisNum);
+  float *regulatedTerms = regulatePIDterms(terms);
+  return regulatedTerms[0] + regulatedTerms[1] + regulatedTerms[2];
+}
+
+float *PIDcontroller::calcPIDadjustmentForceTerms(int axisNum)
+{
+  float terms[3];
+ // terms[0] = calcProportionalAdjustmentForce(axisNum);
+  terms[1] = calcIntegralAdjustmentForce(axisNum);
+  terms[2] = calcDerivativeAdjustmentForce(axisNum);
+  return terms;
+}
+
+float PIDcontroller::calcProportionalAdjustmentForce(int axisNum) {return proportionalConstant * currentStateErrors[axisNum];}
+
+float PIDcontroller::calcIntegralAdjustmentForce(int axisNum) 
+{
+  integrals[axisNum] += (currentStateErrors[axisNum] / secondsSinceLastMeasurement) * integralConstant; 
+  return integrals[axisNum];
+}
+
+float PIDcontroller::calcDerivativeAdjustmentForce(int axisNum) 
+{
+  return derivativeConstant * (currentStateErrors[axisNum] - lastStateErrors[axisNum]) / secondsSinceLastMeasurement;
+} 
+
+float *PIDcontroller::regulatePIDterms(float unregulatedTerms[])
+{
+  float regulatedTerms[3];
+  for(int termNum = 0; termNum < 3; termNum++)
+  {
+    regulatedTerms[termNum] = regulatePIDterm(termNum, unregulatedTerms[termNum]);
+  }
+  return regulatedTerms;
+}
+
+float PIDcontroller::regulatePIDterm(int termNum, float termValue)
+{
+  if(abs(termValue) > maxPIDtermOutputs[termNum]) {termValue = maxPIDtermOutputs[termNum] * (termValue / abs(termValue));}       //x / abs(x) gives you the sign of the number we are preserving the sign of the adjustment force
+  return termValue;
+}
+
+float PIDcontroller::getObstacleAvoidanceForces(int axisNum)
+{
+  if(obstacleAvoider == NULL) {return 0;}
+  else if(axisNum == 0) {return obstacleAvoider->calcObstacleAvoidanceForce(2) - obstacleAvoider->calcObstacleAvoidanceForce(0);} //avoidance force pushing forward minus the force pushing back
+  else if(axisNum == 1) {return obstacleAvoider->calcObstacleAvoidanceForce(1) - obstacleAvoider->calcObstacleAvoidanceForce(3);} //avoidance force pushing right minus the force pushing left
+  else{return 0;}
+}
+
+float PIDcontroller::regulateDesiredStateAdjustmentForce(float unregulatedForce)
+{
+  if(abs(unregulatedForce) > MAX_OUTPUT_FORCE) {return MAX_OUTPUT_FORCE * (unregulatedForce / abs(unregulatedForce));}   //x / abs(x) gives you the sign of the number, we are preserving the sign of the adjustment force
+  else{return unregulatedForce;}
+}
+
+//getters and setters
+void PIDcontroller::newAvoider(ObstacleAvoider *newAvoider) {this->obstacleAvoider = newAvoider;}
+
+int *PIDcontroller::getPIDconstants() {return PIDtermConstants;}
+void PIDcontroller::setPIDconstants(int newConstants) {memcpy(PIDtermConstants, newConstants, sizeof(PIDtermConstants));}
+
+int *PIDcontroller::getMaxPIDtermOutputs() {return maxPIDtermOutputs;}
+void PIDcontroller::setMaxPIDtermOutputs(int newMaxTermOutputs[]) {memcpy(maxPIDtermOutputs, newMaxTermOutputs, sizeof(maxPIDtermOutputs));}
+
+float *PIDcontroller::getDesiredStates() {return desiredStates;}
+void PIDcontroller::setDesiredStates(float newDesiredStates[NUM_AXIS])
+{
+   memcpy(desiredStates, newDesiredStates, sizeof(newDesiredStates));
+   resetPIDstate();
+}
+
+void PIDcontroller::setDesiredState(int axisNum, float newTarget)
+{
+  desiredStates[axisNum] = newTarget;
+  integrals[axisNum] = 0;
+  desiredStateChanged[axisNum] = true;                                                          //used to trigger derivative error spike prevention  
 }
 

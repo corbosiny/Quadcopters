@@ -14,7 +14,7 @@ void MotorController::updateMotorSpeeds(int newMotorSpeeds[NUM_MOTORS])
 
 void MotorController::updateMotorSpeed(int motorNum, int newMotorSpeed)
 {
-  currentMotorSpeeds[motorNum] = regulateMotorSpeed(motorNum, newMotorSpeed);
+  currentMotorSpeeds[motorNum] = limitMotorSpeed(newMotorSpeed);
   writeMotorNewSpeed(motorNum, currentMotorSpeeds[motorNum]);
 }
 
@@ -26,29 +26,15 @@ void MotorController::incrementAndWriteMotorSpeeds(float increments[])
 
 void MotorController::incrementAndWriteMotorSpeed(int motorNumber, int increment = 1) 
 {
-  currentMotorSpeeds[motorNumber] = regulateMotorSpeed(motorNumber, currentMotorSpeeds[motorNumber] + increment);
+  currentMotorSpeeds[motorNumber] = limitMotorSpeed(currentMotorSpeeds[motorNumber]);
   writeMotorNewSpeed(motorNumber, currentMotorSpeeds[motorNumber]);
 } 
-
-
-int *MotorController::regulateMotorSpeeds(int unregulatedSpeeds[NUM_MOTORS]) 
-{
-  int regulatedMotorSpeeds[NUM_MOTORS];
-  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {regulatedMotorSpeeds[motorNum] = regulateMotorSpeed(motorNum, unregulatedSpeeds);}
-  return regulatedMotorSpeeds;
-}
-
-int MotorController::regulateMotorSpeed(int motorNum, int motorSpeed)
-{
-  int offsetedSpeed = offsetMotorSpeed(motorNum, motorSpeed);
-  int offsetedAndLimitedMotorSpeed = limitMotorSpeed(motorNum, offsetedSpeed);
-  return offsetedAndLimitedMotorSpeed;
-}
 
 int *MotorController::offsetMotorSpeeds(int motorSpeeds[NUM_MOTORS]) 
 {
   int offsetMotorSpeeds[NUM_MOTORS];
-  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {offsetMotorSpeeds[motorNum] = offsetMotorSpeed(motorNum, motorSpeeds[motorNum]);}  
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {offsetMotorSpeeds[motorNum] = offsetMotorSpeed(motorNum, motorSpeeds[motorNum]);} 
+  return offsetMotorSpeeds; 
 }
 
 int MotorController::offsetMotorSpeed(int motorNum, int motorSpeed) {return motorSpeed - motorSpeedOffsets[motorNum];}
@@ -56,11 +42,11 @@ int MotorController::offsetMotorSpeed(int motorNum, int motorSpeed) {return moto
 int *MotorController::limitMotorSpeeds(int motorSpeeds[NUM_MOTORS])
 {
   int limitedSpeeds[NUM_MOTORS];
-  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {limitedSpeeds[motorNum] = limitMotorSpeed(motorNum, motorSpeeds[motorNum]);}
+  for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {limitedSpeeds[motorNum] = limitMotorSpeed(motorSpeeds[motorNum]);}
   return limitedSpeeds;
 }
 
-int MotorController::limitMotorSpeed(int motorNum, int motorSpeed)
+int MotorController::limitMotorSpeed(int motorSpeed)
 {
   if(motorSpeed > MAX_MOTOR_SPEED) {return MAX_MOTOR_SPEED;}
   else if(motorSpeed < MIN_MOTOR_SPEED) {return MIN_MOTOR_SPEED;}
@@ -74,7 +60,7 @@ void MotorController::writeMotorsNewSpeeds(int newMotorSpeeds[])
 
 void MotorController::writeMotorNewSpeed(int motorNumber, int newSpeed)                                                                         
 {               
-  motors[motorNumber].writeMicroseconds(newSpeed);                     
+  motors[motorNumber].writeMicroseconds(offsetMotorSpeed(motorNumber, newSpeed));                     
 }
 
 

@@ -26,8 +26,8 @@ Squad squads[] = new Squad[0];                                                  
 void setup()
 {
   surface.setTitle("Swarm Simulation");                           
-  fullScreen();
-  //size(750, 400);
+  //fullScreen();
+  size(750, 400);
   surface.setResizable(true);                                                                                                
 
   testSquad = new Squad(leadDrone);                                                                     //initializing our squads, takes a leader, number of drones that fit in the first shell of the formation, and the radius of the first shell; here I choose a raidus just outside the distance the drones start avoidong obstacles 
