@@ -13,20 +13,6 @@ PIDcontroller::PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOu
   resetPIDstate();
 }
 
-PIDcontroller::PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3], ObstacleAvoider *newAvoider)
-{
-  this->imu = imu; 
-  
-  this->obstacleAvoider = newAvoider;
-  
-  memcpy(this->PIDtermConstants[3], PIDtermConstants[3], sizeof(PIDtermConstants));
-  memcpy(this->maxPIDtermOutputs, maxPIDtermOutputs, sizeof(maxPIDtermOutputs));
-
-  proportionalConstant = PIDtermConstants[0];
-  integralConstant = PIDtermConstants[1];
-  derivativeConstant = PIDtermConstants[2];
-  resetPIDstate();
-}
 
 void PIDcontroller::resetPIDstate() 
 {
@@ -52,8 +38,8 @@ float *PIDcontroller::updateStateAdjustmentsToReachDesiredStates()
 float PIDcontroller::updateStateAdjustmentToReachDesiredState(int axisNum)
 {
   updateStateMeasurements(axisNum);
-  float adjustmentForce = calcDesiredStateAdjustmentForce(axisNum);
-  adjustmentForce = regulateDesiredStateAdjustmentForce(adjustmentForce);
+  float adjustmentForce = calcPIDadjustmentForce(axisNum);
+  adjustmentForce = regulatePIDadjustmentForce(adjustmentForce);
   return adjustmentForce;
 }
 
@@ -101,15 +87,6 @@ void PIDcontroller::updateMeasurementTimer()
 
 int PIDcontroller::calcSecondsSinceLastMeasurement() {return (millis() - timeLastMeasurementTaken) / 1000;}
 
-
-
-float PIDcontroller::calcDesiredStateAdjustmentForce(int axisNum)
-{
-  float PIDtotalAdjustmentForce = calcPIDadjustmentForce(axisNum);
-  float obstacleAvoidanceAdjustmentForce = getObstacleAvoidanceForces(axisNum);
-  return PIDtotalAdjustmentForce + obstacleAvoidanceAdjustmentForce;
-}
-
 float PIDcontroller::calcPIDadjustmentForce(int axisNum)
 {
   float *terms = calcPIDadjustmentForceTerms(axisNum);
@@ -120,7 +97,7 @@ float PIDcontroller::calcPIDadjustmentForce(int axisNum)
 float *PIDcontroller::calcPIDadjustmentForceTerms(int axisNum)
 {
   float terms[3];
- // terms[0] = calcProportionalAdjustmentForce(axisNum);
+  terms[0] = calcProportionalAdjustmentForce(axisNum);
   terms[1] = calcIntegralAdjustmentForce(axisNum);
   terms[2] = calcDerivativeAdjustmentForce(axisNum);
   return terms;
@@ -155,23 +132,13 @@ float PIDcontroller::regulatePIDterm(int termNum, float termValue)
   return termValue;
 }
 
-float PIDcontroller::getObstacleAvoidanceForces(int axisNum)
-{
-  if(obstacleAvoider == NULL) {return 0;}
-  else if(axisNum == 0) {return obstacleAvoider->calcObstacleAvoidanceForce(2) - obstacleAvoider->calcObstacleAvoidanceForce(0);} //avoidance force pushing forward minus the force pushing back
-  else if(axisNum == 1) {return obstacleAvoider->calcObstacleAvoidanceForce(1) - obstacleAvoider->calcObstacleAvoidanceForce(3);} //avoidance force pushing right minus the force pushing left
-  else{return 0;}
-}
-
-float PIDcontroller::regulateDesiredStateAdjustmentForce(float unregulatedForce)
+float PIDcontroller::regulatePIDadjustmentForce(float unregulatedForce)
 {
   if(abs(unregulatedForce) > MAX_OUTPUT_FORCE) {return MAX_OUTPUT_FORCE * (unregulatedForce / abs(unregulatedForce));}   //x / abs(x) gives you the sign of the number, we are preserving the sign of the adjustment force
   else{return unregulatedForce;}
 }
 
 //getters and setters
-void PIDcontroller::newAvoider(ObstacleAvoider *newAvoider) {this->obstacleAvoider = newAvoider;}
-
 int *PIDcontroller::getPIDconstants() {return PIDtermConstants;}
 void PIDcontroller::setPIDconstants(int newConstants) {memcpy(PIDtermConstants, newConstants, sizeof(PIDtermConstants));}
 

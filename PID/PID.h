@@ -11,9 +11,8 @@ class PIDcontroller
   public:   
   static const int NUM_AXIS = 4; 
   static const int MAX_OUTPUT_FORCE = 500;
-    
-  PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3]);
-  PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3], ObstacleAvoider *newAvoider);                                           
+
+  PIDcontroller(IMU *imu, int PIDtermConstants[3], int maxPIDtermOutputs[3]);                                           
   
   void resetPIDstate();
   float *updateStateAdjustmentsToReachDesiredStates();
@@ -28,7 +27,6 @@ class PIDcontroller
   void updateMeasurementTimer();
   int calcSecondsSinceLastMeasurement();
   
-  float calcDesiredStateAdjustmentForce(int axisNum);
   float calcPIDadjustmentForce(int axisNum);
   float *calcPIDadjustmentForceTerms(int axisNum);
   float calcProportionalAdjustmentForce(int axisNum);
@@ -36,10 +34,7 @@ class PIDcontroller
   float calcDerivativeAdjustmentForce(int axisNum);
   float *regulatePIDterms(float unregulatedTerms[]);
   float regulatePIDterm(int termNum, float termValue);
-  float getObstacleAvoidanceForces(int axisNum);
-  float regulateDesiredStateAdjustmentForce(float unregulatedForce);
-
-  void newAvoider(ObstacleAvoider *newAvoider);                                                                                             
+  float regulatePIDadjustmentForce(float unregulatedForce);                                                                                          
 
   int *getPIDconstants();
   void setPIDconstants(int newConstants);
@@ -65,8 +60,7 @@ class PIDcontroller
   float secondsSinceLastMeasurement;                                                                                                                   
                                                                                                              
   float *currentStates;                                                                                                                          
-  IMU *imu;                                                                                                                                                                                                                                      
-  ObstacleAvoider *obstacleAvoider;                                                                                                           
+  IMU *imu;                                                                                                                                                                                                                                                                                                                
   
 };
 
