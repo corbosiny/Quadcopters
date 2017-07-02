@@ -39,7 +39,6 @@ float PIDcontroller::updateStateAdjustmentToReachDesiredState(int axisNum)
 {
   updateStateMeasurements(axisNum);
   float adjustmentForce = calcPIDadjustmentForce(axisNum);
-  adjustmentForce = regulatePIDadjustmentForce(adjustmentForce);
   return adjustmentForce;
 }
 
@@ -132,11 +131,6 @@ float PIDcontroller::regulatePIDterm(int termNum, float termValue)
   return termValue;
 }
 
-float PIDcontroller::regulatePIDadjustmentForce(float unregulatedForce)
-{
-  if(abs(unregulatedForce) > MAX_OUTPUT_FORCE) {return MAX_OUTPUT_FORCE * (unregulatedForce / abs(unregulatedForce));}   //x / abs(x) gives you the sign of the number, we are preserving the sign of the adjustment force
-  else{return unregulatedForce;}
-}
 
 //getters and setters
 int *PIDcontroller::getPIDconstants() {return PIDtermConstants;}

@@ -33,8 +33,7 @@ class PIDcontroller
   float calcIntegralAdjustmentForce(int axisNum);
   float calcDerivativeAdjustmentForce(int axisNum);
   float *regulatePIDterms(float unregulatedTerms[]);
-  float regulatePIDterm(int termNum, float termValue);
-  float regulatePIDadjustmentForce(float unregulatedForce);                                                                                          
+  float regulatePIDterm(int termNum, float termValue);                                                                                          
 
   int *getPIDconstants();
   void setPIDconstants(int newConstants);

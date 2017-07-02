@@ -18,9 +18,17 @@ class MotorController
 
     void updateMotorSpeeds(int newMotorSpeeds[NUM_MOTORS]);
     void updateMotorSpeed(int motorNum, int newMotorSpeed);
-    void incrementAndWriteMotorSpeeds(float increments[NUM_MOTORS]);                                                 
+    void incrementAndWriteMotorSpeeds(int increments[NUM_MOTORS]);                                                 
     void incrementAndWriteMotorSpeed(int motorNumber, int increment = 1);
 
+    void applyStateAdjustmentForceToMotors(int axisNum, float adjustmentForce);
+    int *convertAdjustmentForceToSpeedAdjustments(float adjustmentForce);
+    int calcMotorSpeedDirectionConstants(int axisNum);
+    int *calcPitchDirectionConstants();
+    int *calcRollDirectionConstants();
+    int *calcYawDirectionConstants();
+    int *calcAltitudeDirectionConstants();
+    
     int *offsetMotorSpeeds(int motorSpeeds[NUM_MOTORS]);
     int offsetMotorSpeed(int motorNum, int motorSpeed);
     int *limitMotorSpeeds(int motorSpeeds[NUM_MOTORS]);
