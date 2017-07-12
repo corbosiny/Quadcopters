@@ -11,7 +11,7 @@ class IMU
 {
 
   friend class PID;
-  static const float readingToDegreesConversion = .0153;                  // 1 / the number found in the data sheet
+  static const float readingToDegreesConversion = .0153;                  // .0153 = 1 over the number found in the data sheet
   public:
     IMU(float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, float gyroFilterWeight = .9996);                                                       
 
@@ -19,7 +19,7 @@ class IMU
     void initializeAngleEstimates();
     void setupMPU6050Registers();
     void calibrateAndSetGyroSensorOffsets(int numErrorSamples = 2000);
-    float *getIMUstate();                                                      //Will run through and call all of the below functions to update all the IMU data
+    float *getIMUstate();                                                      
     float *updateIMUAngles();
     void updateMPUrawReadings();
     float *calculateGyroAngleEstimates();
@@ -47,7 +47,7 @@ class IMU
     float accelerometerPitchOffset = 0, accelerometerRollOffset = 0;       
     float gyroFilterWeight;                                                  //used for the complimentary filter, how much weight the gyro's measurments are given vs the accelerometer
     
-    BMP085 barometer;                                                        //The barometer object
+    BMP085 barometer;                                                      
     HMC5883L magnetometer;                                                            
   
 };

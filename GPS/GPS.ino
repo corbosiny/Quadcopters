@@ -25,9 +25,8 @@ void loop()
 
 }
 
-boolean updateGPS()
+boolean readInGPSbuffer()
 {
-
   if(gpsSerial.available())
   {
 
@@ -35,54 +34,52 @@ boolean updateGPS()
       {
         int c = gpsSerial.read();
         if(gps.encode(c)) {return true;}
+        else {return false;}
       }
     
   }
-  else {return false;}
-  
+  else {return false;} 
 }
 
-void getGPSData(boolean updateFirst = false, boolean getDatetime = false)
+void getGPSData(boolean getDatetime = false)
 {
-
-  if(updateFirst)
-  {while(!updateGPS());}
-
   gps.get_position(&lat, &lon, &lastFix);
   if(getDatetime) {gps.get_datetime(&date, &time, &lastFix);}
   speed = gps.speed();
   course = gps.course();
-
 }
 
-int calcDistance(int point1[2], int point2[2])    //point1 = currentPoint, point2 = point in question
+void updateGPSData()
 {
+  while(!readInGPSbuffer())
+  {;}
+  getGPSData();
+}
 
-  int y = point2[0] - point1[0];
-  int x = point2[1] - point1[1];
-  int distance = sqrt(sq(x) + sq(y));
+
+
+int calcDistanceBetweenTwoPoints(int point1[2], int point2[2])    //point1 = currentPoint, point2 = point in question
+{
+  int yVector = point2[0] - point1[0];
+  int xVector = point2[1] - point1[1];
+  int distance = sqrt(sq(xVector) + sq(yVector));
   return distance;
-
 }
 
 
-int calcAngle(int point1[2], int point2[2])
+int calcAngleBetweenTwoPoints(int point1[2], int point2[2])
 {
-
-  int y = point2[0] - point1[0];
-  int x = point2[1] - point1[1];
-  int angle = atan(y / x);
+  int yVector = point2[0] - point1[0];
+  int xVector = point2[1] - point1[1];
+  int angle = atan2(yVector ,xVector);
   return angle;
-  
 }
 
-int *calcRelation(int point1[2], int point2[2])
+int *calcPolarHeadingBetweenTwoPoints(int point1[2], int point2[2])
 {
-
-  int relation[2];
-  relation[0] = calcDistance(point1, point2);
-  relation[1] = calcAngle(point1, point2);
-  return relation;
-  
+  int heading[2];
+  heading[0] = calcDistanceBetweenTwoPoints(point1, point2);
+  heading[1] = calcAngleBetweenTwoPoints(point1, point2);
+  return heading;
 }
 

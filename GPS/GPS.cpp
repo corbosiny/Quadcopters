@@ -17,7 +17,7 @@
 
 //GPS library for controlling the GPS
 //and extracting the data you need qucikly from it
-//subteam: Corey Hulse(thats why I can get away with putting my logo up top)
+//subteam: Corey Hulse
 
 //GPS: EM506(or any tinyGPS compatable GPS)
 //Pin1: GND
@@ -28,21 +28,28 @@
 //Pin6: 1PPS, Not connected
 #include "GPS.h"
 
-GPS::GPS(int p_rxPin, int p_txPin)
+GPS::GPS(int rxPin, int txPin)
 {
 
-   rxPin = p_rxPin;
-   txPin = p_txPin;
+   this->rxPin = rxPin;
+   this->txPin = txPin;
   
-  gpsSerial = new SoftwareSerial(p_rxPin, p_txPin);
+  gpsSerial = new SoftwareSerial(rxPin, txPin);
   gpsSerial->begin(4800);
   
 }
 
-
-boolean GPS::updateGPS()
+void GPS::updateGPSData()
 {
+  while(!readInGPSbuffer())
+  {
+    ;
+  }
+  parseGPSData();
+}
 
+boolean GPS::readInGPSbuffer()
+{
   if(gpsSerial->available())
   {
 
@@ -50,54 +57,43 @@ boolean GPS::updateGPS()
       {
         int c = gpsSerial->read();
         if(gps.encode(c)) {return true;}
+        else {return false;}
       }
     
   }
-  else {return false;}
-  
+  else {return false;} 
 }
 
-void GPS::getGPSData(boolean updateFirst = false, boolean getDatetime = false)
+void GPS::parseGPSData()
 {
-
-  if(updateFirst)
-  {while(!updateGPS());}
-
   gps.get_position(&lat, &lon, &lastFix);
-  if(getDatetime) {gps.get_datetime(&date, &time, &lastFix);}
+  gps.get_datetime(&date, &time, &lastFix);
   speed = gps.speed();
   course = gps.course();
-
 }
 
-int GPS::calcDistance(int point1[2], int point2[2])    //point1 = currentPoint, point2 = point in question
+int GPS::calcDistanceBetweenTwoPoints(int point1[2], int point2[2])    //point1 = currentPoint, point2 = point in question
 {
-
-  int y = point2[0] - point1[0];
-  int x = point2[1] - point1[1];
-  int distance = sqrt(sq(x) + sq(y));
+  int yVector = point2[0] - point1[0];
+  int xVector = point2[1] - point1[1];
+  int distance = sqrt(sq(xVector) + sq(yVector));
   return distance;
-
 }
 
 
-int GPS::calcAngle(int point1[2], int point2[2])
+int GPS::calcAngleBetweenTwoPoints(int point1[2], int point2[2])
 {
-
-  int y = point2[0] - point1[0];
-  int x = point2[1] - point1[1];
-  int angle = atan(y / x);
-  return angle;
-  
+  int yVector = point2[0] - point1[0];
+  int xVector = point2[1] - point1[1];
+  int angle = atan2(yVector, xVector);
+  return angle; 
 }
 
-int *GPS::calcRelation(int point1[2], int point2[2])
+int *GPS::calcPolarHeadingBetweenTwoPoints(int point1[2], int point2[2])
 {
-
-  int relation[2];
-  relation[0] = calcDistance(point1, point2);
-  relation[1] = calcAngle(point1, point2);
-  return relation;
-  
+  int heading[2];
+  heading[0] = calcDistanceBetweenTwoPoints(point1, point2);
+  heading[1] = calcAngleBetweenTwoPoints(point1, point2);
+  return heading;
 }
 

@@ -9,12 +9,13 @@ class GPS
 {
 
   public:
-  GPS(int p_rxPin, int p_txPin);
-  boolean updateGPS();
-  void getGPSData(boolean updateFirst = false, boolean getDatetime = false);
-  int calcDistance(int point1[2], int point2[2]);
-  int calcAngle(int point1[2], int point2[2]);
-  int *calcRelation(int point1[2], int point2[2]);
+  GPS(int rxPin, int txPin);
+  void updateGPSData();
+  boolean readInGPSbuffer();
+  void parseGPSData();
+  int calcDistanceBetweenTwoPoints(int point1[2], int point2[2]);
+  int calcAngleBetweenTwoPoints(int point1[2], int point2[2]);
+  int *calcPolarHeadingBetweenTwoPoints(int point1[2], int point2[2]);
   
   private:
   TinyGPS gps;

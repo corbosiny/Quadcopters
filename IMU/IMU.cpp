@@ -96,13 +96,13 @@ void IMU::updateMPUrawReadings()
   Wire.endTransmission();                                              //End the transmission
   Wire.requestFrom(0x68,14);                                           //Request 14 bytes from the MPU-6050
   while(Wire.available() < 14);                                        //Wait until all the bytes are received
-  accReadingX = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_x variable
-  accReadingY = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_y variable
-  accReadingZ = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_z variable
-  int temperature = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the temperature variable
-  gyroXreading = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_x variable
-  gyroYreading = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_y variable
-  gyroZreading = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_z variable 
+  accReadingX = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the acc_x variable
+  accReadingY = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the acc_y variable
+  accReadingZ = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the acc_z variable
+  int temperature = Wire.read()<<8|Wire.read();                        //Add the low and high byte to the temperature variable
+  gyroXreading = Wire.read()<<8|Wire.read();                           //Add the low and high byte to the gyro_x variable
+  gyroYreading = Wire.read()<<8|Wire.read();                           //Add the low and high byte to the gyro_y variable
+  gyroZreading = Wire.read()<<8|Wire.read();                           //Add the low and high byte to the gyro_z variable 
 }
 
 float *IMU::calculateGyroAngleEstimates()
@@ -147,10 +147,10 @@ float *IMU::coupleYawToPitchAndRollTransfers(float angles[2])
 
 float *IMU::calculateAccelerometerAngleEstimates()
 {
-    float accelerometerVectorMag = sqrt(sq(accReadingX) + sq(accReadingY) + sq(accReadingZ));                                      //Calculate the total accelerometer vector magnitude
+    float accelerometerVectorMag = sqrt(sq(accReadingX) + sq(accReadingY) + sq(accReadingZ));                                      
     
-    float accelerometerPitchAngle = asin((float)accReadingY/accelerometerVectorMag)* 180 / 3.142;                                       //Calculate the pitch angle
-    float accelerometerRollAngle = asin((float)accReadingX/accelerometerVectorMag)* -180 / 3.142;                                       //Calculate the roll angle
+    float accelerometerPitchAngle = asin((float)accReadingY/accelerometerVectorMag)* 180 / 3.142;                                       
+    float accelerometerRollAngle = asin((float)accReadingX/accelerometerVectorMag)* -180 / 3.142;                                       
 
     float angles[2] = {accelerometerPitchAngle, accelerometerRollAngle};
     float *offsetAngles = offsetAccelerometerAngles(angles);
