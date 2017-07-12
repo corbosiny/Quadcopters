@@ -9,6 +9,7 @@ IMU::IMU(float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, 
   initializeIMUsensors();
   setupMPU6050Registers();  
   calibrateAndSetGyroSensorOffsets();   
+  initializeAngleEstimates();
 }
 
 void IMU::initializeIMUsensors()
@@ -17,6 +18,13 @@ void IMU::initializeIMUsensors()
   barometer.initialize();                                                      
   barometer.setControl(BMP085_MODE_PRESSURE_3);
   magnetometer.initialize(); 
+}
+
+void IMU::initializeAngleEstimates()
+{
+  float *accelerometerAngles = calculateAccelerometerAngleEstimates();
+  anglePitch = accelerometerAngles[0];
+  angleRoll = accelerometerAngles[1];
 }
 
 void IMU::setupMPU6050Registers()
@@ -58,7 +66,7 @@ void IMU::calibrateAndSetGyroSensorOffsets(int numErrorSamples = 2000)
 
 float *IMU::getIMUstate()
 {
-  float *pitchAndRollAngles = calculateIMUAngles();                                                                                                                                             
+  float *pitchAndRollAngles = updateIMUAngles();                                                                                                                                             
   float yaw = getCurrentHeadingFromNorth();
   float altitudeInMeters = getCurrentAltitude(); 
   float tempFarenheit = getCurrentTemperatureC();  
@@ -66,26 +74,17 @@ float *IMU::getIMUstate()
   return values;   
 }
 
-float *IMU::calculateIMUAngles()
+float *IMU::updateIMUAngles()
 {
     updateMPUrawReadings();
-    //Accelerometer angle calculations
+    
     float *gyroAngles = calculateGyroAngleEstimates();
     float *accelerometerAngles = calculateAccelerometerAngleEstimates();                                         
 
     float *filteredAngles = applyComplimentaryFilter(gyroAngles, accelerometerAngles);
-    
-    if(initialStartup)                                                                             
-    {                                                 
-        anglePitch = filteredAngles[0];
-        angleRoll = filteredAngles[1];     
-    }
-    else
-    {                                                                                         
-        anglePitch = accelerometerAngles[0];                                                            
-        angleRoll = accelerometerAngles[1];                                        
-        initialStartup = true;                                                                 
-    }    
+                                                  
+    anglePitch = filteredAngles[0];
+    angleRoll = filteredAngles[1];       
 
     return filteredAngles;
 }
@@ -136,12 +135,13 @@ float IMU::convertGyroReadingToChangeInDegrees(int gyroReading)
   return gyroReading * readingToAngleChangeConversionRate;
 }
 
+//If the IMU is rotating, we must transfer the pitch and the roll between eachother in a sinosoidal wave form
 float *IMU::coupleYawToPitchAndRollTransfers(float angles[2])
 {
     float yawChangeInDegrees = convertGyroReadingToChangeInDegrees(gyroZreading);
     float yawChangeInRadians = yawChangeInDegrees * (3.142 / 180.0);
-    angles[0] += angleRoll * sin(yawChangeInRadians);                 //If the IMU is rotating, we must transfer the pitch and the roll between eachother in a sinosoidal wave form
-    angles[1] -= anglePitch * sin(yawChangeInRadians);                 //this isn't the easiest concept to explain in comments, feel free to ask Corey
+    angles[0] += angleRoll * sin(yawChangeInRadians);                 
+    angles[1] -= anglePitch * sin(yawChangeInRadians);                 
     return angles;
 }
 

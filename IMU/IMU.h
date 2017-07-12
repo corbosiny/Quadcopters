@@ -16,10 +16,11 @@ class IMU
     IMU(float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, float gyroFilterWeight = .9996);                                                       
 
     void initializeIMUsensors();
+    void initializeAngleEstimates();
     void setupMPU6050Registers();
     void calibrateAndSetGyroSensorOffsets(int numErrorSamples = 2000);
     float *getIMUstate();                                                      //Will run through and call all of the below functions to update all the IMU data
-    float *calculateIMUAngles();
+    float *updateIMUAngles();
     void updateMPUrawReadings();
     float *calculateGyroAngleEstimates();
     float *calculateGyroAngleReadings(float angles[2]);
@@ -40,8 +41,7 @@ class IMU
     float angleRollAcc, anglePitchAcc;                                   
     
   private:
-    long gyroXsensorOffset, gyroYsensorOffset, gyroZsensorOffset;                              
-    boolean initialStartup = true;                                              
+    long gyroXsensorOffset, gyroYsensorOffset, gyroZsensorOffset;                                                                        
     long long int lastIMUrefresh = 0;
     
     float accelerometerPitchOffset = 0, accelerometerRollOffset = 0;       
