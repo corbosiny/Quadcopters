@@ -1,22 +1,22 @@
 #include "IMU.h"
 
-IMU::IMU(long int seaLPress, float gyroCon = .9996, float accPO = 0, float accRO = 0, int reRate = 250)
+IMU::IMU(float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, float gyroFilterWeight = .9996)
 {
+  this->gyroFilterWeight = gyroFilterWeight;            //how much the gyro angle contributes in the complimentary filter
+  this->accelerometerPitchOffset = accelerometerPitchOffset;                               
+  this->accelerometerRollOffset = accelerometerRollOffset;                                
 
-  Wire.begin();                                         //intializing our librarites and modules
-  bmp.initialize();                                     //starts up the barometer
-  bmp.setControl(BMP085_MODE_PRESSURE_1);                                               
-  mag.initialize();
-
-  seaLevelPress = seaLPress;                            //Local air pressure at sea pressure, must be looked up
-  gyroContribution = gyroCon;                           //how much the gyro angle contributes in the complimentary filter
-  accPitchOffset = accPO;                                //accelerometer pitch offset
-  accRollOffset = accRO;                                 //accelerometer roll offset
-  refreshRate = reRate;                                 //the refresh rate is defaulted to 250 Hz but should be measured for more accuracy
-  
+  initializeIMUsensors();
   setupMPU6050Registers();  
-  calibrateGyro();    
-  
+  calibrateAndSetGyroSensorOffsets();   
+}
+
+void IMU::initializeIMUsensors()
+{
+  Wire.begin();  
+  barometer.initialize();                                                      
+  barometer.setControl(BMP085_MODE_PRESSURE_3);
+  magnetometer.initialize(); 
 }
 
 void IMU::setupMPU6050Registers()
@@ -40,127 +40,171 @@ void IMU::setupMPU6050Registers()
 
 }
 
-void IMU::calibrateGyro()                                              //Calibrates Gyro Offsets
-{
-
-  Wire.begin();  
-  bmp.initialize();                                                      //starts up the barometer
-  bmp.setControl(BMP085_MODE_PRESSURE_1);                                //sets the barometer to standard quality measurment mode(4 modes) ranging from low power to high quality
-  mag.initialize();                                                      //starts up the magentometer
-  
-  pinMode(13, OUTPUT);                                                   //if this pin is in use take out this line and the digital writes to it below
-  digitalWrite(13, HIGH);                                                
-  
-  for (int i; i < 2000 ; i++)                                            //here we will calculate the offsets for our gyro as they can drift
+void IMU::calibrateAndSetGyroSensorOffsets(int numErrorSamples = 2000)                                  
+{                                           
+  for (int sample; sample < numErrorSamples ; sample++)                                           
   {                                           
-      
-      readMPUData();                                              //Read the raw acc and gyro data from the MPU6050
-      gyroXoffset += gyroX;                                              //keep running total of 2000 readings
-      gyroYoffset += gyroY;                                              
-      gyroZoffset += gyroZ;                                              
+      updateMPUrawReadings();                                            
+      gyroXsensorOffset += gyroXreading;                                             
+      gyroYsensorOffset += gyroYreading;                                              
+      gyroZsensorOffset += gyroZreading;                                              
       delay(3);                                                          
-  
   }
   
-  gyroXoffset /= 2000;                                                  //Divide the gyro variables by 2000 to get the avarage offset
-  gyroYoffset /= 2000;                                                  
-  gyroZoffset /= 2000;                                                  
-
-  digitalWrite(13, LOW);  
-  
+  gyroXsensorOffset /= numErrorSamples;                                                  
+  gyroYsensorOffset /= numErrorSamples;                                                  
+  gyroZsensorOffset /= numErrorSamples;                                                   
 }
 
-float *IMU::readIMUData()
+float *IMU::getIMUstate()
 {
+  float *pitchAndRollAngles = calculateIMUAngles();                                                                                                                                             
+  float yaw = getCurrentHeadingFromNorth();
+  float altitudeInMeters = getCurrentAltitude(); 
+  float tempFarenheit = getCurrentTemperatureC();  
+  float values[] = {pitchAndRollAngles[0], pitchAndRollAngles[1], yaw, altitudeInMeters, tempFarenheit};
+  return values;   
+}
 
-  readMPUData();                                                                      //functions to read all the data we need from the IMU
-  readBMPData();                                                                          //each function deals with a respective module of the IMU
-  readMCLData();  
-  float values[] = {anglePitch, angleRoll, heading, alt};
-  return values;
+float *IMU::calculateIMUAngles()
+{
+    updateMPUrawReadings();
+    //Accelerometer angle calculations
+    float *gyroAngles = calculateGyroAngleEstimates();
+    float *accelerometerAngles = calculateAccelerometerAngleEstimates();                                         
+
+    float *filteredAngles = applyComplimentaryFilter(gyroAngles, accelerometerAngles);
     
+    if(initialStartup)                                                                             
+    {                                                 
+        anglePitch = filteredAngles[0];
+        angleRoll = filteredAngles[1];     
+    }
+    else
+    {                                                                                         
+        anglePitch = accelerometerAngles[0];                                                            
+        angleRoll = accelerometerAngles[1];                                        
+        initialStartup = true;                                                                 
+    }    
+
+    return filteredAngles;
 }
 
-void IMU::readMPUDataRaw()
+void IMU::updateMPUrawReadings()
 {
-
   Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
   Wire.write(0x3B);                                                    //Send the requested starting register
   Wire.endTransmission();                                              //End the transmission
   Wire.requestFrom(0x68,14);                                           //Request 14 bytes from the MPU-6050
   while(Wire.available() < 14);                                        //Wait until all the bytes are received
-  accX = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_x variable
-  accY = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_y variable
-  accZ = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_z variable
-  temperature = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the temperature variable
-  gyroX = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_x variable
-  gyroY = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_y variable
-  gyroZ = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_z variable
-  
+  accReadingX = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_x variable
+  accReadingY = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_y variable
+  accReadingZ = Wire.read()<<8|Wire.read();                                   //Add the low and high byte to the acc_z variable
+  int temperature = Wire.read()<<8|Wire.read();                            //Add the low and high byte to the temperature variable
+  gyroXreading = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_x variable
+  gyroYreading = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_y variable
+  gyroZreading = Wire.read()<<8|Wire.read();                                  //Add the low and high byte to the gyro_z variable 
 }
 
-void IMU::readMPUData()
+float *IMU::calculateGyroAngleEstimates()
 {
+ float angles[] = {anglePitch, angleRoll};
+ offsetGyroReadings();                                                  
+ float *newGyroAngleEstimates = calculateGyroAngleReadings(angles);                                              
+ coupleYawToPitchAndRollTransfers(newGyroAngleEstimates);
+}
 
-    readMPUDataRaw();
-    gyroX -= gyroXoffset;                                                                    //Subtracting the calibration offset from the raw gyro values
-    gyroY -= gyroYoffset;                                                
-    gyroZ -= gyroZoffset;                                                
+void IMU::offsetGyroReadings()
+{
+    gyroXreading -= gyroXsensorOffset;                                                                   
+    gyroYreading -= gyroYsensorOffset;                                                
+    gyroZreading -= gyroZsensorOffset; 
+}
 
-    //Gyro angle calculations
-    //0.0000611 = 1 / (default refreshRate / 65.5)
-    int conversion = 1.0 / refreshRate / 65.5;
-    anglePitch += gyroX * conversion;                                                        //Calculate the traveled pitch angle and add this to the angle_pitch variable
-    angleRoll += gyroY * conversion;                                                         //Calculate the traveled roll angle and add this to the angle_roll variable
+float *IMU::calculateGyroAngleReadings(float angles[2])
+{
+    angles[0] += convertGyroReadingToChangeInDegrees(gyroXreading);                                                       
+    angles[1] += convertGyroReadingToChangeInDegrees(gyroYreading);  
+    return angles;
+}
 
-    //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) to convert to radians
-    anglePitch += angleRoll * sin(gyroZ * conversion * (3.142 / 180.0));                       //If the IMU is rotating, we must transfer the pitch and the roll between eachother in a sinosoidal wave form
-    angleRoll -= anglePitch * sin(gyroZ * conversion * (3.142 / 180.0));                       //this isn't the easiest concept to explain in comments, feel free to ask Corey
+float IMU::convertGyroReadingToChangeInDegrees(int gyroReading)
+{
+  float refreshRate = calcRefreshRate();
+  float timeSinceLastUpdate = 1.0 / refreshRate;
+  float readingToAngleChangeConversionRate = timeSinceLastUpdate * readingToDegreesConversion;
+  return gyroReading * readingToAngleChangeConversionRate;
+}
 
-    //Accelerometer angle calculations
-    accMag = sqrt((accX * accX) + (accY * accY) + (accZ * accZ));                                              //Calculate the total accelerometer vector magnitude
+float *IMU::coupleYawToPitchAndRollTransfers(float angles[2])
+{
+    float yawChangeInDegrees = convertGyroReadingToChangeInDegrees(gyroZreading);
+    float yawChangeInRadians = yawChangeInDegrees * (3.142 / 180.0);
+    angles[0] += angleRoll * sin(yawChangeInRadians);                 //If the IMU is rotating, we must transfer the pitch and the roll between eachother in a sinosoidal wave form
+    angles[1] -= anglePitch * sin(yawChangeInRadians);                 //this isn't the easiest concept to explain in comments, feel free to ask Corey
+    return angles;
+}
 
-    //57.296 = 1 / (3.142 / 180) to convert to radians
-    anglePitchAcc = asin((float)accY/accMag)* 57.296;                                       //Calculate the pitch angle
-    angleRollAcc = asin((float)accX/accMag)* -57.296;                                       //Calculate the roll angle
-
-    //set unit flat to determine these values
-    //helps to determine initial angles better
-    anglePitchAcc -= accPitchOffset;                                                        //Accelerometer calibration value for pitch
-    angleRollAcc -=  accRollOffset;                                               
-
-
-    //below we use a complimentary filter
-    //basically a weighted average of gyro and accelerometer readings
-    //result is essentially a bandpass filter that disregards random small spikes in accel readings
-    //and corrects long term drift of the gyro, sort of like an integral proportional controller but averaged
-
-    if(setGyroAngles)                                                                             //If the IMU is already started
-    {                                                 
-        anglePitch = anglePitch * gyroContribution + anglePitchAcc * (1.0 - gyroContribution);     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
-        angleRoll = angleRoll * gyroContribution + angleRollAcc * (1.0 - gyroContribution);        
-    }
-    else
-    {                                                                                         //Only occurs first start
-        anglePitch = anglePitchAcc;                                                           //Set the initial angles to the accelerometer angles 
-        angleRoll = angleRollAcc;                                        
-        setGyroAngles = true;                                                                 //prevents any more triggering
-    }
-
-    temperature = temperature / 340.00 + 36.53;                                               //from data sheet, converts temp reading to celcius    
+float *IMU::calculateAccelerometerAngleEstimates()
+{
+    float accelerometerVectorMag = sqrt(sq(accReadingX) + sq(accReadingY) + sq(accReadingZ));                                      //Calculate the total accelerometer vector magnitude
     
+    float accelerometerPitchAngle = asin((float)accReadingY/accelerometerVectorMag)* 180 / 3.142;                                       //Calculate the pitch angle
+    float accelerometerRollAngle = asin((float)accReadingX/accelerometerVectorMag)* -180 / 3.142;                                       //Calculate the roll angle
+
+    float angles[2] = {accelerometerPitchAngle, accelerometerRollAngle};
+    float *offsetAngles = offsetAccelerometerAngles(angles);
+    return offsetAngles;
 }
 
-void IMU::readBMPData()
+float *IMU::offsetAccelerometerAngles(float angles[2])
 {
-  pressure = bmp.getPressure();                                        
-  alt = bmp.getAltitude(seaLevelPress);                           //uses local sea level air pressure to calculatre altitude
+  angles[0] = accelerometerPitchOffset;
+  angles[1] = accelerometerRollOffset;
+  return angles;
 }
 
-void IMU::readMCLData()
+
+//basically a weighted average of gyro and accelerometer readings
+//result is essentially a bandpass filter that disregards random small spikes in accel readings
+//and corrects long term drift of the gyro, sort of like an integral proportional controller but averaged
+float *IMU::applyComplimentaryFilter(float gyroEstimates[2], float accelerometerEstimates[2])
 {
-   mag.getHeading(&mx, &my, &mz);                                         //gets the magnetic field strengths on each asix
-   heading = atan2(my, mx);                                               //looks at x and y to determine the overall direction to the north pole
-   if(heading < 0) {heading += 2.0 * M_PI;}                               //Turns a negative angle positive
-   heading *= (180.0 / M_PI);                                             //Turns the angle from radians to degrees
+    float filteredAngles[2];
+    filteredAngles[0] = gyroEstimates[0] * gyroFilterWeight + accelerometerEstimates[0] * (1.0 - gyroFilterWeight);     //Correct the drift of the gyro pitch angle with the accelerometer pitch angle
+    filteredAngles[1] = gyroEstimates[1] * gyroFilterWeight + accelerometerEstimates[1] * (1.0 - gyroFilterWeight); 
+    return filteredAngles;
+}
+
+
+float IMU::calcRefreshRate()
+{
+  int timeSinceLastFrame = millis() - lastIMUrefresh;
+  float refreshRate = 1000.0 / timeSinceLastFrame; //1000 instead of one because we are in milliseconds going to seconds
+  lastIMUrefresh = millis();
+  return refreshRate;
+}
+
+float IMU::getCurrentAltitude()
+{
+  barometer.setControl(BMP085_MODE_PRESSURE_3);              //fast pressure measurment mode
+  float currentAtmosphericPressure = barometer.getPressure();                                        
+  return barometer.getAltitude(currentAtmosphericPressure);  
+}
+
+float IMU::getCurrentTemperatureC()
+{
+   barometer.setControl(BMP085_MODE_TEMPERATURE);
+   return barometer.getTemperatureC();
+}
+
+
+float IMU::getCurrentHeadingFromNorth()
+{
+   int16_t mx, my, mz;
+   magnetometer.getHeading(&mx, &my, &mz);              //getting magnetic field strength on each axis                                
+   float heading = atan2(my, mx);                                               
+   if(heading < 0) {heading += 2.0 * M_PI;}                               
+   heading *= (180.0 / M_PI);
+   return heading;                                             
 }

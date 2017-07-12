@@ -2,8 +2,8 @@
 //*                          FEROMONE IMU                               *
 //*              CALCULATES CURRENT STATE OF THE DRONE                  *
 //*         PITCH, ROLL, YAW(soon), TEMPERATURE, ALTITUDE(soon)         *
-//*                  Sub-team members: Corey, Ali                       *
-//*ASK COREY OR ALI ABOUT THE MATH AND/OR CODE IF YOU HAVE ANY QUESTIONS*
+//*                  Sub-team members: Corey                            *
+//*    ASK COREY ABOUT THE MATH AND/OR CODE IF YOU HAVE ANY QUESTIONS   *
 //***********************************************************************
 //
 //Gyro/Accel    -   MPU6050

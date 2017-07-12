@@ -1,9 +1,9 @@
 #include "MotorController.h"
 
-MotorController::MotorController(int p_motorPins[4], int p_motorSpeedOffsets[4] = {})                 //takes in the motorpins and offsets
+MotorController::MotorController(int motorPins[4], int motorSpeedOffsets[4] = {})                 //takes in the motorpins and offsets
 {
-  memcpy(motorPins, p_motorPins, sizeof(p_motorPins));
-  memcpy(motorSpeedOffsets, p_motorSpeedOffsets, sizeof(p_motorSpeedOffsets));
+  memcpy(this->motorPins, motorPins, sizeof(motorPins));
+  memcpy(this->motorSpeedOffsets, motorSpeedOffsets, sizeof(motorSpeedOffsets));
   for(int motorNum = 0; motorNum < NUM_MOTORS; motorNum++) {motors[motorNum].attach(motorPins[motorNum]); currentMotorSpeeds[motorNum] = 0;} 
 }
 
