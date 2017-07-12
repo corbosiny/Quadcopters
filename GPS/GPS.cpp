@@ -66,7 +66,7 @@ boolean GPS::readInGPSbuffer()
 
 void GPS::parseGPSData()
 {
-  gps.get_position(&lat, &lon, &lastFix);
+  gps.get_position(&latitude, &longitude, &lastFix);
   gps.get_datetime(&date, &time, &lastFix);
   speed = gps.speed();
   course = gps.course();
@@ -97,3 +97,5 @@ int *GPS::calcPolarHeadingBetweenTwoPoints(int point1[2], int point2[2])
   return heading;
 }
 
+int GPS::getLatitude() {return latitude;}
+int GPS::getLongitude() {return longitude;}

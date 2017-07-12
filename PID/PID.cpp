@@ -44,7 +44,7 @@ float PIDcontroller::updateStateAdjustmentToReachDesiredState(int axisNum)
 
 void PIDcontroller::updateStateMeasurements(int axisNum)
 {
-  currentStates = imu->readIMUData();
+  currentStates = imu->getIMUstate();
   updateStateError(axisNum);
   updateMeasurementTimer();
 }

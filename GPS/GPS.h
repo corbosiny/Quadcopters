@@ -16,12 +16,14 @@ class GPS
   int calcDistanceBetweenTwoPoints(int point1[2], int point2[2]);
   int calcAngleBetweenTwoPoints(int point1[2], int point2[2]);
   int *calcPolarHeadingBetweenTwoPoints(int point1[2], int point2[2]);
+  int getLatitude();
+  int getLongitude();
   
   private:
   TinyGPS gps;
   SoftwareSerial *gpsSerial = NULL;
   int rxPin, txPin;
-  long int lat, lon;
+  long int latitude, longitude;
   unsigned long time, date, course, speed, lastFix;
   float axisAdjust;
   
