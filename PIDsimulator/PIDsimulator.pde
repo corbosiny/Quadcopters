@@ -6,8 +6,8 @@ int baseCoordinates4[] = {200, 250};
 
 float PIDconstants[] = {0, 0, 0};
 float PIDconstants2[] = {4, 0, 0};
-float PIDconstants3[] = {4, 10, .6};
-float PIDconstants4[] = {4, 10, .6};
+float PIDconstants3[] = {4, 10, 0};
+float PIDconstants4[] = {4, 10, .8};
 float outsideForces[] = {-50, -50};
 
 int maxPIDoutputs[] = {300, 400, 200}; 

@@ -1,6 +1,8 @@
 #include "IMU.h"
+#define  readingToDegreesConversion .0153;
 
-IMU::IMU(float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, float gyroFilterWeight = .9996)
+// float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, float gyroFilterWeight = .9996 common initial values
+IMU::IMU(float accelerometerPitchOffset, float accelerometerRollOffset, float gyroFilterWeight)
 {
   this->gyroFilterWeight = gyroFilterWeight;            //how much the gyro angle contributes in the complimentary filter
   this->accelerometerPitchOffset = accelerometerPitchOffset;                               
@@ -8,7 +10,7 @@ IMU::IMU(float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, 
 
   initializeIMUsensors();
   setupMPU6050Registers();  
-  calibrateAndSetGyroSensorOffsets();   
+  calibrateAndSetGyroSensorOffsets(2000);   
   initializeAngleEstimates();
 }
 
@@ -48,7 +50,7 @@ void IMU::setupMPU6050Registers()
 
 }
 
-void IMU::calibrateAndSetGyroSensorOffsets(int numErrorSamples = 2000)                                  
+void IMU::calibrateAndSetGyroSensorOffsets(int numErrorSamples)                                  
 {                                           
   for (int sample; sample < numErrorSamples ; sample++)                                           
   {                                           

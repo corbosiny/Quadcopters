@@ -7,18 +7,18 @@
 #include <BMP085.h>
 #include "HMC5883L.h"
 
+// float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, float gyroFilterWeight = .9996 common initial values
 class IMU
 {
 
   friend class PID;
-  static const float readingToDegreesConversion = .0153;                  // .0153 = 1 over the number found in the data sheet
   public:
-    IMU(float accelerometerPitchOffset = 0, float accelerometerRollOffset = 0, float gyroFilterWeight = .9996);                                                       
+    IMU(float accelerometerPitchOffset, float accelerometerRollOffset, float gyroFilterWeight);                                                       
 
     void initializeIMUsensors();
     void initializeAngleEstimates();
     void setupMPU6050Registers();
-    void calibrateAndSetGyroSensorOffsets(int numErrorSamples = 2000);
+    void calibrateAndSetGyroSensorOffsets(int numErrorSamples);
     float *getIMUstate();                                                      
     float *updateIMUAngles();
     void updateMPUrawReadings();

@@ -148,24 +148,19 @@ void loop()
 
     temperature = temperature / 340.00 + 36.53;                                               //from data sheet, converts temp reading to celcius
     
-    Serial.print("Pitch: ");                                                                  //For Debugging Purposes
-    Serial.println(anglePitch);
-    Serial.print("Roll: ");
-    Serial.println(angleRoll);
-//    Serial.print("Temperature: ");
-//    Serial.println(temperature);
-//    Serial.print("Air Pressure: ");
-//    Serial.println(pressure);
-//    Serial.print("Altitude: ");
-//    Serial.println(altitude);
-//    Serial.print("Heading(0 = North): ");
-//    Serial.println(heading);
-//    Serial.println("\n\n");
-
-  delay(1000);
+    sendDataPacket('p', anglePitch);         //For Debugging Purposes
+    sendDataPacket('r', angleRoll); 
+    
+    delay(1000);
   
 }
 
+void sendDataPacket(char param, float value)
+{
+  Serial.print(param);
+  Serial.print(':');
+  Serial.println(value);
+}
 void readBMPdata()                                                                               //Reads in and fills all the variables that hold BMP data
 {
   
