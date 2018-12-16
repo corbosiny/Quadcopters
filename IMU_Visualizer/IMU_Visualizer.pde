@@ -21,22 +21,23 @@ float fov = PI/3.0;
 float cameraZ = (height / 2.0) / tan(fov / 2.0);
 float horizontalRotation = 0;
 float verticalRotation = 0;
-float zoom = (height / 2) / tan(PI / 6.0) + 200;
+float zoom = (height / 2) / tan(PI / 6.0) + 500;
 
-float p, pIncrem;
-float r, rIncrem;
-float y, yIncrem;
+float p;
+float r;
+float y;
+
+float u = 0, i = 0, d = 0;
 void draw()
 {
-  /*background(0);
-  camera(mouseX + horizontalRotation, mouseY + verticalRotation, zoom, width/2, height/2, 0, 0, 1, 0);
-  translate(width/2, height/2, -100);
-  stroke(255);
-  noFill();
-  box(200);*/
+
   background(0);
   lights();
   smooth();
+  textSize(32);
+  text(u, 100, 50);
+  text(i, 100, 100);
+  text(d, 100, 150);
   camera(mouseX, mouseY, zoom, width/2, height/2, 0, 0, 1, 0);
   pushMatrix();
   noStroke();
@@ -64,8 +65,6 @@ void serialEvent(Serial port)
      {
        float value = float(message.substring(2));
        p += value;
-       //print("value of p: ");
-       //print(p);
      }
      else if(message.charAt(0) == 'r')
      {
@@ -76,6 +75,21 @@ void serialEvent(Serial port)
      {
        float value = float(message.substring(2));
        y += value;
+     }
+     else if(message.charAt(0) == 'u')
+     {
+         float value = float(message.substring(2));
+         u = value;
+     }
+     else if(message.charAt(0) == 'i')
+     {
+         float value = float(message.substring(2));
+         i = value;
+     }
+     else if(message.charAt(0) == 'd')
+     {
+         float value = float(message.substring(2));
+         d = value;
      }
      message = "";
    } 
